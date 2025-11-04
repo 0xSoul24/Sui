@@ -1,59 +1,47 @@
--repackageclasses rikka.sui
+# ------------------ 核心保护规则 ------------------
+# 完整保留 sui 和 rish 包中的所有类、接口、字段和方法，不进行任何形式的重命名或移除。
+# 这是解决当前崩溃问题的最关键步骤。
+-keep class rikka.sui.** { *; }
+-keep interface rikka.sui.** { *; }
+-keep class rikka.rish.** { *; }
 
--keep class rikka.sui.server.Starter {
-    public static void main(java.lang.String[]);
+# ------------------ JNI (原生代码) 保护规则 ------------------
+# 保留所有包含 native 方法的类，以及这些 native 方法本身。
+-keepclasseswithmembernames class * {
+    native <methods>;
 }
 
--keep class rikka.sui.server.userservice.Starter {
-    public static void main(java.lang.String[]);
+# ------------------ Binder/AIDL 保护规则 ------------------
+# 保留所有 AIDL 自动生成的接口及其内部 Stub 类。
+-keep interface **.I* { *; }
+-keep class **.I*$* { *; }
+
+# 完整保留所有实现了 Parcelable 接口的类。
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator CREATOR;
+    <fields>;
+    <methods>;
 }
 
--keep class rikka.sui.systemserver.SystemProcess {
-    public static void main(java.lang.String[]);
-    public static boolean execTransact(android.os.Binder, int, long, long, int);
-}
-
--keep class rikka.sui.manager.ManagerProcess {
-    public static void main(java.lang.String[]);
-}
-
--keep class rikka.sui.settings.SettingsProcess {
-    public static void main(java.lang.String[]);
-    public static boolean execTransact(android.os.Binder, int, long, long, int);
-}
-
--keep class rikka.sui.installer.Installer {
-    public static void main(java.lang.String[]);
-}
-
--keep class rikka.sui.installer.Uninstaller {
-    public static void main(java.lang.String[]);
-}
-
--keep class rikka.sui.shell.Shell {
-    public static void main(java.lang.String[]);
-}
-
--keepnames class * implements android.os.Parcelable
-
--keepclassmembers class * implements android.os.Parcelable {
-  public static final android.os.Parcelable$Creator CREATOR;
-}
-
+# ------------------ 其他优化与兼容性规则 ------------------
+# 移除 Log 日志调用
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
 }
-
 -assumenosideeffects class rikka.sui.util.Logger {
     public *** d(...);
 }
 
--assumenosideeffects class rikka.shizuku.server.util.Logger {
-    public *** d(...);
-}
-
+# 保留源码文件名和行号信息
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
 
+# 忽略警告
 -dontwarn android.**
 -dontwarn com.android.**
+-dontwarn androidx.**
+-dontwarn sun.misc.**
