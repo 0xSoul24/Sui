@@ -158,11 +158,12 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             configManager.update(gmsUid, SuiConfig.MASK_PERMISSION, SuiConfig.FLAG_HIDDEN);
         }
 
-        BridgeServiceClient.send(new BridgeServiceClient.Listener() {
-            @Override
-            public void onSystemServerRestarted() {
-                LOGGER.w("system restarted...");
-            }
+        new Handler(Looper.getMainLooper()).post(() -> {
+            BridgeServiceClient.send(new BridgeServiceClient.Listener() {
+                @Override
+                public void onSystemServerRestarted() {
+                    LOGGER.w("system restarted...");
+                }
 
             @Override
             public void onResponseFromBridgeService(boolean response) {
@@ -172,6 +173,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                     LOGGER.w("no response from bridge");
                 }
             }
+           });
         });
     }
 
