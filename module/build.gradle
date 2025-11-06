@@ -52,12 +52,12 @@ android {
 dependencies {
     implementation libs.refine.runtime
 
-    implementation 'org.lsposed.libcxx:libcxx:27.0.12077973'
+    implementation 'org.lsposed.libcxx:libcxx:28.1.13356709'
     implementation 'dev.rikka.ndk.thirdparty:nativehelper:1.0.1'
     implementation 'dev.rikka.rikkax.parcelablelist:parcelablelist:2.0.1'
 
     implementation "androidx.annotation:annotation:1.9.1"
-    implementation 'androidx.core:core:1.16.0'
+    implementation 'androidx.core:core:1.17.0'
 
     implementation project(':aidl')
     implementation project(':shared')

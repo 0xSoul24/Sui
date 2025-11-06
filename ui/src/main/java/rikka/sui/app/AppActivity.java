@@ -68,14 +68,23 @@ public class AppActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         setTheme(R.style.Theme_Material3_DayNight_NoActionBar);
         super.onCreate(savedInstanceState);
-        super.setContentView(R.layout.appbar_fragment_activity);
 
-        rootView = findViewById(R.id.root);
-        toolbarContainer = findViewById(R.id.toolbar_container);
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        try {
+            super.setContentView(R.layout.appbar_fragment_activity);
 
-        setSupportActionBar(toolbar);
-        EdgeToEdge.enable(this);
+            rootView = findViewById(R.id.root);
+            toolbarContainer = findViewById(R.id.toolbar_container);
+            Toolbar toolbar = findViewById(R.id.toolbar);
+
+            if (toolbar != null) {
+                setSupportActionBar(toolbar);
+            } else {
+                android.util.Log.e("Sui", "Toolbar not found in appbar_fragment_activity layout");
+            }
+            // EdgeToEdge.enable(this);
+        } catch (Throwable t) {
+            android.util.Log.e("Sui", "Fatal error in AppActivity.onCreate", t);
+        }
     }
 
     @Override
