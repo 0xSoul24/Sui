@@ -10,7 +10,7 @@ add_link_options(-ffixed-x18 -Wl,--hash-style=both)
 add_compile_options(-Werror=format -fdata-sections -ffunction-sections -fno-exceptions -fno-rtti -fno-threadsafe-statics)
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_options(-Os -flto -fvisibility=hidden -fvisibility-inlines-hidden)
+    add_compile_options(-Os -flto -fvisibility-inlines-hidden)
     add_link_options(-flto -Wl,--exclude-libs,ALL -Wl,--gc-sections -Wl,--strip-all)
 else ()
     add_definitions(-DDEBUG)
