@@ -45,6 +45,10 @@ android {
         includeInApk false
     }
 }
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add("-Xlint:deprecation")
+    options.compilerArgs.add("-Xlint:all")
+}
 
 configurations.configureEach {
     exclude group: 'androidx.appcompat', module: 'appcompat'

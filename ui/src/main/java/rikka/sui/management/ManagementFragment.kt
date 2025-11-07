@@ -23,6 +23,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DefaultItemAnimator
@@ -52,7 +54,18 @@ class ManagementFragment : AppFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val context = view.context
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
+            binding.list.setPadding(
+                binding.list.paddingLeft,
+                0,
+                binding.list.paddingRight,
+                systemBars.bottom
+            )
+
+            insets
+        }
         binding.list.apply {
 //            borderVisibilityChangedListener =
 //                OnBorderVisibilityChangedListener { top: Boolean, _: Boolean, _: Boolean, _: Boolean ->

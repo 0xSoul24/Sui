@@ -23,8 +23,10 @@ import android.app.ActivityManager;
 import android.app.Application;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.os.Build;
 
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 
 import java.util.Objects;
 
@@ -48,6 +50,14 @@ public class SuiActivity extends AppActivity {
                 .replace(R.id.fragment_container, new ManagementFragment())
                 .commit();
 
-        setTaskDescription(new ActivityManager.TaskDescription("Sui"));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            ActivityManager.TaskDescription taskDescription = new ActivityManager.TaskDescription.Builder()
+                    .setLabel("Sui")
+                    .setPrimaryColor(ContextCompat.getColor(this, com.google.android.material.R.color.design_default_color_primary))
+                    .build();
+            setTaskDescription(taskDescription);
+        } else {
+            setTaskDescription(new ActivityManager.TaskDescription("Sui"));
+        }
     }
 }

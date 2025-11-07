@@ -81,7 +81,7 @@ public class AppActivity extends AppCompatActivity {
             } else {
                 android.util.Log.e("Sui", "Toolbar not found in appbar_fragment_activity layout");
             }
-            // EdgeToEdge.enable(this);
+            EdgeToEdge.enable(this);
         } catch (Throwable t) {
             android.util.Log.e("Sui", "Fatal error in AppActivity.onCreate", t);
         }

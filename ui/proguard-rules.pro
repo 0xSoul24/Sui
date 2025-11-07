@@ -1,39 +1,31 @@
-# Keep the main activities and dialogs, including all their members.
--keep class rikka.sui.SuiActivity { *; }
--keep class rikka.sui.SuiRequestPermissionDialog { *; }
+-repackageclasses rikka.sui
 
-# Broadly keep everything in the app's main package and sub-packages.
-# This is crucial for code loaded dynamically or via instrumentation.
--keep class rikka.sui.** { *; }
--keep interface rikka.sui.** { *; }
+-keepclasseswithmembers class rikka.sui.SuiActivity {
+     public <init>(...);
+}
 
-# Keep Parcelable implementations, which are used for IPC.
+-keepclasseswithmembers class rikka.sui.SuiRequestPermissionDialog {
+     public <init>(...);
+}
+
 -keepnames class * implements android.os.Parcelable
+
 -keepclassmembers class * implements android.os.Parcelable {
   public static final android.os.Parcelable$Creator CREATOR;
 }
 
-# Suppress log messages from release builds.
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
-    public static *** v(...);
-}
--assumenosideeffects class rikka.sui.util.Logger {
-    public *** d(...);
-    public *** v(...);
 }
 
-# Keep Kotlin-specific metadata and intrinsics, which are essential for Kotlin interoperability.
+-assumenosideeffects class rikka.sui.util.Logger {
+    public *** d(...);
+}
+
 -assumenosideeffects class kotlin.jvm.internal.Intrinsics {
     public static void check*(...);
     public static void throw*(...);
 }
--keep class kotlin.Metadata { *; }
 
-# Keep attributes for debugging and for libraries that rely on annotations.
--keepattributes SourceFile,LineNumberTable,*Annotation*
+-keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
-
-# Don't warn about Android internal or library classes.
--dontwarn android.**
--dontwarn com.android.**
