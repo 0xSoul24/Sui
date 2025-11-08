@@ -32,6 +32,9 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.RemoteException;
+import android.os.Build;
+import android.provider.Telephony;
+import android.telephony.TelephonyManager;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
@@ -144,10 +147,14 @@ public class ManagerProcess {
         WorkerHandler.get().post(ManagerProcess::sendToService);
 
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("android.provider.Telephony.SECRET_CODE");
-        //intentFilter.addAction("android.telephony.action.SECRET_CODE");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            intentFilter.addAction(TelephonyManager.ACTION_SECRET_CODE);
+        } else {
+            intentFilter.addAction(Telephony.Sms.Intents.SECRET_CODE_ACTION);
+        }
         intentFilter.addDataAuthority("784784", null);
         intentFilter.addDataScheme("android_secret_code");
+
 
         try {
             context.registerReceiver(SHOW_MANAGEMENT_RECEIVER, intentFilter,

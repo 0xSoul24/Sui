@@ -1,31 +1,53 @@
--repackageclasses rikka.sui
+-keepattributes SourceFile,LineNumberTable,*Annotation*
 
--keepclasseswithmembers class rikka.sui.SuiActivity {
-     public <init>(...);
-}
-
--keepclasseswithmembers class rikka.sui.SuiRequestPermissionDialog {
-     public <init>(...);
+-keepclassmembers class **.R$* {
+    public static <fields>;
 }
 
 -keepnames class * implements android.os.Parcelable
-
 -keepclassmembers class * implements android.os.Parcelable {
   public static final android.os.Parcelable$Creator CREATOR;
 }
 
+-keep public class * extends android.view.View {
+    public <init>(android.content.Context);
+    public <init>(android.content.Context, android.util.AttributeSet);
+    public <init>(android.content.Context, android.util.AttributeSet, int);
+}
+
+-keep class androidx.appcompat.** { *; }
+-keep interface androidx.appcompat.** { *; }
+
+-keep class androidx.vectordrawable.** { *; }
+-keep interface androidx.vectordrawable.** { *; }
+
+-keep class androidx.core.** { *; }
+-keep interface androidx.core.** { *; }
+
+-keep class androidx.appcompat.widget.ResourceManagerInternal { *; }
+-keep class androidx.appcompat.widget.AppCompatDrawableManager { *; }
+
+-keep class rikka.sui.** { *; }
+-keep interface rikka.sui.** { *; }
+
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
+    public static *** v(...);
 }
-
 -assumenosideeffects class rikka.sui.util.Logger {
-    public *** d(...);
+    public static *** d(...);
+    public static *** v(...);
 }
 
--assumenosideeffects class kotlin.jvm.internal.Intrinsics {
-    public static void check*(...);
-    public static void throw*(...);
-}
+-dontoptimize
+-dontpreverify
+-dontwarn androidx.**
+-dontwarn android.support.**
+-dontwarn org.jetbrains.annotations.**
 
 -keepattributes SourceFile,LineNumberTable
--renamesourcefileattribute SourceFile
+
+-printmapping mapping.txt
+-printseeds seeds.txt
+-printusage usage.txt
+-printconfiguration proguard-config.txt

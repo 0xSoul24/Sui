@@ -97,7 +97,7 @@ afterEvaluate {
 
             into magiskDir
             from(templatePath) {
-                exclude 'module.prop'
+                exclude 'module.prop', 'action.sh'
             }
             from(templatePath) {
                 include 'module.prop'
@@ -110,6 +110,11 @@ afterEvaluate {
                         description: moduleDescription,
                         updateJson : "https://rikkaapps.github.io/release/sui_zygisk.json",
                 ])
+                filter(FixCrLfFilter.class,
+                        eol: FixCrLfFilter.CrLf.newInstance("lf"))
+            }
+            from(templatePath) {
+                include 'action.sh'
                 filter(FixCrLfFilter.class,
                         eol: FixCrLfFilter.CrLf.newInstance("lf"))
             }

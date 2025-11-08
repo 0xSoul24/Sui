@@ -1,4 +1,4 @@
-SKIPUNZIP=1
+fSKIPUNZIP=1
 
 # Extract verify.sh
 ui_print "- Extracting verify.sh"
@@ -35,6 +35,10 @@ extract "$ZIPFILE" 'module.prop' "$MODPATH"
 extract "$ZIPFILE" 'post-fs-data.sh' "$MODPATH"
 extract "$ZIPFILE" 'uninstall.sh' "$MODPATH"
 extract "$ZIPFILE" 'sepolicy.rule' "$MODPATH"
+
+ui_print "- Extracting action script"
+extract "$ZIPFILE" 'action.sh' "$MODPATH"
+set_perm "$MODPATH/action.sh" 0 0 0755
 
 ui_print "- Patching sepolicy.rule"
 su_secon=$(id -Z | cut -d: -f3)
