@@ -1,4 +1,4 @@
-fSKIPUNZIP=1
+SKIPUNZIP=1
 
 # Extract verify.sh
 ui_print "- Extracting verify.sh"
