@@ -49,26 +49,44 @@ public class BridgeServiceClient {
     };
 
     private static IBinder requestBinderFromBridge() {
+        final String TAG = "SuiBridgeDebug";
+
+        android.util.Log.d(TAG, "Attempting to request binder from bridge...");
+
         IBinder binder = ServiceManager.getService(BRIDGE_SERVICE_NAME);
-        if (binder == null) return null;
+        if (binder == null) {
+            android.util.Log.e(TAG, "CRITICAL FAILURE: ServiceManager.getService(\"activity\") returned null!");
+            return null;
+        }
+        android.util.Log.d(TAG, "'activity' service binder obtained. Preparing custom transact...");
 
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
             data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
             data.writeInt(BRIDGE_ACTION_GET_BINDER);
+
+            android.util.Log.d(TAG, "Executing binder.transact with custom code...");
             binder.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
+            android.util.Log.d(TAG, "Transact call has returned. Reading reply...");
+
             reply.readException();
+            android.util.Log.d(TAG, "readException() completed without throwing an exception.");
+
             IBinder received = reply.readStrongBinder();
             if (received != null) {
+                android.util.Log.i(TAG, "SUCCESS! Received a non-null binder from the bridge.");
                 return received;
+            } else {
+                android.util.Log.w(TAG, "FAILURE: Transact was successful, but the returned binder is NULL. The bridge likely rejected the request.");
             }
         } catch (Throwable e) {
-            e.printStackTrace();
+            android.util.Log.e(TAG, "FATAL FAILURE: An exception was thrown during the transact/reply process.", e);
         } finally {
             data.recycle();
             reply.recycle();
         }
+        android.util.Log.e(TAG, "requestBinderFromBridge is returning NULL.");
         return null;
     }
 

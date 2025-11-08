@@ -70,6 +70,7 @@ class ManagementViewModel : ViewModel() {
             } catch (e: CancellationException) {
 
             } catch (e: Throwable) {
+                android.util.Log.e("SuiViewModelFinal", "THE SMOKING GUN! The final error is:", e)
                 appList.postValue(Resource.error(e, null))
             }
         }
