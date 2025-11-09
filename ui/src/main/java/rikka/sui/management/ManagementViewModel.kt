@@ -19,6 +19,8 @@
 package rikka.sui.management
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +35,7 @@ import rikka.sui.util.BridgeServiceClient
 
 class ManagementViewModel : ViewModel() {
 
+    private val UI_DEBUG_MODE = true
     private val fullList = ArrayList<AppInfo>()
 
     val appList = MutableLiveData<Resource<List<AppInfo>>>(null)
@@ -52,9 +55,33 @@ class ManagementViewModel : ViewModel() {
             handleList()
         }
     }
+    fun filter(query: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (query.isNullOrBlank()) {
+                handleList()
+                return@launch
+            }
+            val filteredList = fullList.filter { appInfo ->
+                val appName = appInfo.label ?: ""
+                val packageName = appInfo.packageInfo.packageName ?: ""
 
+                appName.contains(query, ignoreCase = true) || packageName.contains(query, ignoreCase = true)
+            }
+            appList.postValue(Resource.success(filteredList))
+        }
+    }
     fun reload(context: Context) {
         appList.postValue(Resource.loading(null))
+
+        if (UI_DEBUG_MODE) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val fakeData = createFakeAppList()
+                fullList.clear()
+                fullList.addAll(fakeData)
+                handleList()
+            }
+            return
+        }
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -72,6 +99,30 @@ class ManagementViewModel : ViewModel() {
             } catch (e: Throwable) {
                 android.util.Log.e("SuiViewModelFinal", "THE SMOKING GUN! The final error is:", e)
                 appList.postValue(Resource.error(e, null))
+            }
+        }
+    }
+
+    private fun createFakeAppList(): List<AppInfo> {
+        val names = listOf(
+            "Ciallo", "0721", "0d00", "小潼", "xiaotong",
+            "测试QQ", "91av", "糖心vlog", "禁漫天堂", "哔咔",
+            "AcFun(伪)", "伪萌娘百科", "假时钟", "测试新闻阅读器", "虚拟地图",
+            "伪联系人", "虚构记事本", "测试QQ浏览器", "假计算器", "虚拟音乐盒"
+        )
+
+        return names.mapIndexed { index, name ->
+            val pkg = "com.example.fakeapp${index + 1}"
+            AppInfo().apply {
+                packageInfo = PackageInfo().apply {
+                    packageName = pkg
+                    applicationInfo = ApplicationInfo().apply {
+                        nonLocalizedLabel = name
+                        this.packageName = pkg
+                    }
+                }
+                label = name
+                flags = 0
             }
         }
     }

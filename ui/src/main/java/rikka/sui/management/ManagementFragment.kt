@@ -20,6 +20,7 @@ package rikka.sui.management
 
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
@@ -28,6 +29,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DefaultItemAnimator
+import androidx.appcompat.widget.SearchView
 import rikka.core.res.resolveColor
 import rikka.core.res.resolveDimension
 import rikka.lifecycle.Resource
@@ -35,6 +37,7 @@ import rikka.lifecycle.Status
 import rikka.lifecycle.viewModels
 import rikka.recyclerview.addFastScroller
 import rikka.recyclerview.fixEdgeEffect
+import rikka.sui.R
 import rikka.sui.app.AppFragment
 import rikka.sui.databinding.ManagementBinding
 import rikka.sui.model.AppInfo
@@ -44,7 +47,7 @@ class ManagementFragment : AppFragment() {
     private var _binding: ManagementBinding? = null
     private val binding: ManagementBinding get() = _binding!!
 
-    private val viewModel by viewModels { ManagementViewModel().apply { reload(requireAppActivity()) } }
+    private val viewModel by viewModels { ManagementViewModel().apply { reload(requireContext()) } }
     private val adapter = ManagementAdapter()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -53,6 +56,9 @@ class ManagementFragment : AppFragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setHasOptionsMenu(true)
+
         val context = view.context
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -102,6 +108,24 @@ class ManagementFragment : AppFragment() {
                 else -> {}
             }
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: android.view.Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        inflater.inflate(R.menu.management_menu, menu)
+
+        val searchItem = menu.findItem(R.id.action_search)
+        val searchView = searchItem.actionView as SearchView
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false
+            }
+            override fun onQueryTextChange(newText: String?): Boolean {
+                viewModel.filter(newText)
+                return true
+            }
+        })
     }
 
     override fun onDestroyView() {
