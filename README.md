@@ -1,6 +1,6 @@
 # Sui
 
-Modern super user interface (SUI) implementation on Android. <del>The name, Sui, also comes from [a character](https://www.pixiv.net/artworks/71435059).</del>
+Modern super user interface (SUI) implementation on Android. <del>The name, Sui, also comes from [a character](https://github.com/XiaoTong6666/Sui/issues/1).</del>
 
 ## Introduction
 
@@ -63,7 +63,7 @@ Clone with `git clone --recurse-submodules`.
 
 Gradle tasks:
 
-`Flavor` could be `Riru` and `Zygisk`, and `BuildType` could be `Debug` and `Release`.
+`Flavor` could be <del>`Riru` and</del> `Zygisk`, and `BuildType` could be `Debug` and `Release`.
 
 * `:module:assemble<Flavor><BuildType>`
 
@@ -83,7 +83,7 @@ Gradle tasks:
 
 ## Internals
 
-Sui requires [Magisk](https://github.com/topjohnwu/Magisk) (and [Riru](https://github.com/RikkaApps) for non-Zygisk version). Magisk allows us to run processes as uid 0 and a "do anything" SELinux context. Riru or Zygisk allows us to inject into system server process and app processes.
+Sui requires [Magisk](https://github.com/topjohnwu/Magisk) <del>(and [Riru](https://github.com/RikkaApps) for non-Zygisk version)</del>. Magisk allows us to run processes as uid 0 and a "do anything" SELinux context. <del>Riru or</del> Zygisk allows us to inject into system server process and app processes.
 
 In short, there are four parts:
 
