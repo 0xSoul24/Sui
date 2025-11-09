@@ -35,7 +35,7 @@ import rikka.sui.util.BridgeServiceClient
 
 class ManagementViewModel : ViewModel() {
 
-    private val UI_DEBUG_MODE = true
+    private val UI_DEBUG_MODE = false
     private val fullList = ArrayList<AppInfo>()
 
     val appList = MutableLiveData<Resource<List<AppInfo>>>(null)
