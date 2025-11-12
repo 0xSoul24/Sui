@@ -47,8 +47,8 @@ class ManagementFragment : AppFragment() {
     private var _binding: ManagementBinding? = null
     private val binding: ManagementBinding get() = _binding!!
 
-    private val viewModel by viewModels { ManagementViewModel().apply { reload(requireContext()) } }
-    private val adapter = ManagementAdapter()
+    private val viewModel by viewModels { ManagementViewModel() }
+    private val adapter by lazy { ManagementAdapter(requireContext()) }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = ManagementBinding.inflate(inflater, container, false)
@@ -79,8 +79,12 @@ class ManagementFragment : AppFragment() {
 //                }
             adapter = this@ManagementFragment.adapter
             (itemAnimator as DefaultItemAnimator).supportsChangeAnimations = false
-            addFastScroller(binding.swipeRefresh)
             fixEdgeEffect()
+            this.setItemViewCacheSize(20)
+            this.recycledViewPool.setMaxRecycledViews(0, 20)
+            me.zhanghai.android.fastscroll.FastScrollerBuilder(this)
+                .useMd2Style()
+                .build()
 
             layoutAnimationListener = object : Animation.AnimationListener {
                 override fun onAnimationStart(animation: Animation?) {}
@@ -108,6 +112,9 @@ class ManagementFragment : AppFragment() {
                 else -> {}
             }
         }
+        if (savedInstanceState == null) {
+            viewModel.reload(requireContext())
+        }
     }
 
     override fun onCreateOptionsMenu(menu: android.view.Menu, inflater: MenuInflater) {
@@ -134,32 +141,29 @@ class ManagementFragment : AppFragment() {
     }
 
     private fun onLoading() {
-        binding.apply {
-            swipeRefresh.isEnabled = false
-            swipeRefresh.isRefreshing = false
-            progress.isVisible = true
-            list.isGone = true
-        }
+        binding.progress.isVisible = true
+        binding.list.isGone = true
+
+        binding.swipeRefresh.isRefreshing = false
+        binding.swipeRefresh.isEnabled = false
 
         adapter.updateData(emptyList())
     }
 
     private fun onError(e: Throwable) {
-        binding.apply {
-            swipeRefresh.isEnabled = true
-            swipeRefresh.isRefreshing = false
-            progress.isGone = true
-            list.isVisible = true
-        }
+        binding.progress.isGone = true
+        binding.list.isVisible = true
+
+        binding.swipeRefresh.isRefreshing = false
+        binding.swipeRefresh.isEnabled = true
     }
 
     private fun onSuccess(data: Resource<List<AppInfo>?>) {
-        binding.apply {
-            swipeRefresh.isEnabled = true
-            swipeRefresh.isRefreshing = false
-            progress.isGone = true
-            list.isVisible = true
-        }
+        binding.progress.isGone = true
+        binding.list.isVisible = true
+
+        binding.swipeRefresh.isRefreshing = false
+        binding.swipeRefresh.isEnabled = true
 
         data.data?.let {
             adapter.updateData(it)

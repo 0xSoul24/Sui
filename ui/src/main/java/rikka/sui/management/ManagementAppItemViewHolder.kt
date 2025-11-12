@@ -18,45 +18,37 @@
  */
 package rikka.sui.management
 
-import android.content.res.Configuration
 import android.graphics.Typeface
 import android.util.Log
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import android.widget.ArrayAdapter
-import android.widget.TextView
 import kotlinx.coroutines.Job
-import rikka.core.res.resolveColor
 import rikka.core.res.resolveColorStateList
-import rikka.html.text.toHtml
 import rikka.recyclerview.BaseViewHolder
-import rikka.sui.R
 import rikka.sui.databinding.ManagementAppItemBinding
 import rikka.sui.model.AppInfo
 import rikka.sui.server.SuiConfig
 import rikka.sui.util.AppIconCache
 import rikka.sui.util.BridgeServiceClient
 import rikka.sui.util.UserHandleCompat
-import java.util.Locale
 
-class ManagementAppItemViewHolder(private val binding: ManagementAppItemBinding) : BaseViewHolder<AppInfo>(binding.root),
-    View.OnClickListener {
+class ManagementAppItemViewHolder(
+    private val binding: ManagementAppItemBinding,
+    private val optionsAdapter: ArrayAdapter<CharSequence>
+) : BaseViewHolder<AppInfo>(binding.root), View.OnClickListener {
 
     companion object {
-
-        val CREATOR = Creator<AppInfo> { inflater: LayoutInflater, parent: ViewGroup? ->
-            ManagementAppItemViewHolder(
-                ManagementAppItemBinding.inflate(
-                    inflater,
-                    parent,
-                    false
+        fun newCreator(optionsAdapter: ArrayAdapter<CharSequence>) =
+            Creator<AppInfo> { inflater: LayoutInflater, parent: ViewGroup? ->
+                ManagementAppItemViewHolder(
+                    ManagementAppItemBinding.inflate(inflater, parent, false),
+                    optionsAdapter
                 )
-            )
-        }
+            }
 
         private val SANS_SERIF = Typeface.create("sans-serif", Typeface.NORMAL)
         private val SANS_SERIF_MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -76,54 +68,10 @@ class ManagementAppItemViewHolder(private val binding: ManagementAppItemBinding)
     private val textColorSecondary = context.theme.resolveColorStateList(android.R.attr.textColorSecondary)
     private val textColorPrimary = context.theme.resolveColorStateList(android.R.attr.textColorPrimary)
 
-    private val optionsAdapter: ArrayAdapter<CharSequence>
+    // private val optionsAdapter: ArrayAdapter<CharSequence>
 
     init {
         itemView.setOnClickListener(this)
-
-        val context = binding.root.context
-        val theme = context.theme
-        val isNight = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES != 0
-        val colorAccent = theme.resolveColor(androidx.appcompat.R.attr.colorAccent)
-        val colorForeground = theme.resolveColor(android.R.attr.colorForeground)
-        val textColorTertiary = theme.resolveColorStateList(android.R.attr.textColorTertiary)
-        val colorError = if (isNight) 0xFF8A80 else 0xFF5252
-
-        this.optionsAdapter = object : ArrayAdapter<CharSequence>(
-            binding.button1.context,
-            android.R.layout.simple_spinner_item,
-            arrayOf(
-                String.format(
-                    "<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>",
-                    context.getString(R.string.permission_allowed),
-                    String.format(Locale.ENGLISH, "%06x", colorAccent and 0xffffff)
-                ).toHtml(),
-                String.format(
-                    "<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>",
-                    context.getString(R.string.permission_denied),
-                    String.format(Locale.ENGLISH, "%06x", colorError and 0xffffff)
-                ).toHtml(),
-                String.format(
-                    "<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>",
-                    context.getString(R.string.permission_hidden),
-                    String.format(Locale.ENGLISH, "%06x", colorForeground and 0xffffff)
-                ).toHtml(),
-                context.getString(R.string.permission_ask)
-            )
-        ) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                return if (convertView == null) {
-                    val view = super.getView(position, convertView, parent)
-                    val textView = view.findViewById<TextView>(android.R.id.text1)
-                    textView.setTextColor(textColorTertiary)
-                    textView.gravity = Gravity.CENTER_VERTICAL or Gravity.END
-                    view
-                } else {
-                    super.getView(position, convertView, parent)
-                }
-            }
-        }
-        this.optionsAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
 
         this.itemView.setOnClickListener { spinner.performClick() }
     }
@@ -156,17 +104,14 @@ class ManagementAppItemViewHolder(private val binding: ManagementAppItemBinding)
     }
 
     override fun onBind() {
-        val pm = itemView.context.packageManager
+        loadIconJob?.cancel()
+
         val userId = UserHandleCompat.getUserId(uid)
 
-        icon.setImageDrawable(ai!!.loadIcon(pm))
-
-        loadIconJob = AppIconCache.loadIconBitmapAsync(context, ai!!, ai!!.uid / 100000, icon)
-
         name.text = if (userId != UserHandleCompat.myUserId()) {
-            "${ai!!.loadLabel(pm)} - ($userId)"
+            "${data.label} - ($userId)"
         } else {
-            ai!!.loadLabel(pm)
+            data.label
         }
         pkg.text = ai!!.packageName
 
@@ -174,10 +119,12 @@ class ManagementAppItemViewHolder(private val binding: ManagementAppItemBinding)
         spinner.onItemSelectedListener = onItemSelectedListener
 
         syncViewStateForFlags()
+
+        icon.setImageDrawable(null)
+        loadIconJob = AppIconCache.loadIconBitmapAsync(context, ai!!, ai!!.uid / 100000, icon)
     }
 
-    override fun onBind(payloads: List<Any>) {
-    }
+    override fun onBind(payloads: List<Any>) {}
 
     override fun onRecycle() {
         if (loadIconJob?.isActive == true) {
