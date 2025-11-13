@@ -39,15 +39,20 @@
     public static *** v(...);
 }
 
--dontoptimize
--dontpreverify
 -dontwarn androidx.**
 -dontwarn android.support.**
 -dontwarn org.jetbrains.annotations.**
 
 -keepattributes SourceFile,LineNumberTable
-
--printmapping mapping.txt
--printseeds seeds.txt
--printusage usage.txt
--printconfiguration proguard-config.txt
+-keep class androidx.appcompat.app.AppCompatDelegateImpl$*
+-keep class com.google.android.material.** { *; }
+-keep interface com.google.android.material.** { *; }
+-keep class com.google.android.material.theme.overlay.** { *; }
+-keep class dev.rikka.rikkax.** { *; }
+-keep interface dev.rikka.rikkax.** { *; }
+-keep class rikka.material.** { *; }
+-keep interface rikka.material.** { *; }
+-keep class me.zhanghai.android.fastscroll.** { *; }
+-keep interface me.zhanghai.android.fastscroll.** { *; }
+-keep class me.zhanghai.android.appiconloader.** { *; }
+-keep interface me.zhanghai.android.appiconloader.** { *; }

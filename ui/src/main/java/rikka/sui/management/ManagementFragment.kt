@@ -19,23 +19,21 @@
 package rikka.sui.management
 
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
+import androidx.appcompat.widget.SearchView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DefaultItemAnimator
-import androidx.appcompat.widget.SearchView
-import rikka.core.res.resolveColor
-import rikka.core.res.resolveDimension
 import rikka.lifecycle.Resource
 import rikka.lifecycle.Status
 import rikka.lifecycle.viewModels
-import rikka.recyclerview.addFastScroller
 import rikka.recyclerview.fixEdgeEffect
 import rikka.sui.R
 import rikka.sui.app.AppFragment
@@ -60,6 +58,21 @@ class ManagementFragment : AppFragment() {
         setHasOptionsMenu(true)
 
         val context = view.context
+        view.post {
+            val parentView = view.parent as? ViewGroup
+            if (parentView != null) {
+                val hostPaddingLeft = parentView.paddingLeft
+                val hostPaddingRight = parentView.paddingRight
+                if (hostPaddingLeft > 0 || hostPaddingRight > 0) {
+                    val layoutParams = view.layoutParams as? ViewGroup.MarginLayoutParams
+                    if (layoutParams != null) {
+                        layoutParams.leftMargin = -hostPaddingLeft
+                        layoutParams.rightMargin = -hostPaddingRight
+                        view.layoutParams = layoutParams
+                    }
+                }
+            }
+        }
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
 
@@ -97,10 +110,14 @@ class ManagementFragment : AppFragment() {
             setOnRefreshListener {
                 viewModel.reload(context)
             }
-            setColorSchemeColors(
-                context.theme.resolveColor(android.R.attr.colorAccent)
-            )
-            val actionBarSize = context.theme.resolveDimension(androidx.appcompat.R.attr.actionBarSize, 0f).toInt()
+            val typedValue = TypedValue()
+
+            context.theme.resolveAttribute(androidx.appcompat.R.attr.colorAccent, typedValue, true)
+            val colorAccent = typedValue.data
+            setColorSchemeColors(colorAccent)
+
+            context.theme.resolveAttribute(androidx.appcompat.R.attr.actionBarSize, typedValue, true)
+            val actionBarSize = TypedValue.complexToDimensionPixelSize(typedValue.data, resources.displayMetrics)
             setProgressViewOffset(false, actionBarSize, (64 * resources.displayMetrics.density + actionBarSize).toInt())
         }
 

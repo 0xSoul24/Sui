@@ -20,16 +20,15 @@ package rikka.sui.management
 
 import android.content.Context
 import android.content.res.Configuration
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.TextView
+import androidx.core.text.HtmlCompat
 import java.util.Locale
 import me.zhanghai.android.fastscroll.PopupTextProvider
-import rikka.core.res.resolveColor
-import rikka.core.res.resolveColorStateList
-import rikka.html.text.toHtml
 import rikka.recyclerview.BaseRecyclerViewAdapter
 import rikka.recyclerview.ClassCreatorPool
 import rikka.sui.R
@@ -45,18 +44,25 @@ class ManagementAdapter(context: Context) : BaseRecyclerViewAdapter<ClassCreator
     private fun createOptionsAdapter(context: Context): ArrayAdapter<CharSequence> {
         val theme = context.theme
         val isNight = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES != 0
-        val colorAccent = theme.resolveColor(androidx.appcompat.R.attr.colorAccent)
-        val colorForeground = theme.resolveColor(android.R.attr.colorForeground)
-        val textColorTertiary = theme.resolveColorStateList(android.R.attr.textColorTertiary)
+
+        val typedValue = TypedValue()
+        theme.resolveAttribute(androidx.appcompat.R.attr.colorAccent, typedValue, true)
+        val colorAccent = typedValue.data
+
+        theme.resolveAttribute(android.R.attr.colorForeground, typedValue, true)
+        val colorForeground = typedValue.data
+
+        val textColorTertiary = context.getColorStateList(android.R.color.tertiary_text_light)
+
         val colorError = if (isNight) 0xFF8A80 else 0xFF5252
 
         val adapter = object : ArrayAdapter<CharSequence>(
             context,
             android.R.layout.simple_spinner_item,
             arrayOf(
-                String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_allowed), String.format(Locale.ENGLISH, "%06x", colorAccent and 0xffffff)).toHtml(),
-                String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_denied), String.format(Locale.ENGLISH, "%06x", colorError and 0xffffff)).toHtml(),
-                String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_hidden), String.format(Locale.ENGLISH, "%06x", colorForeground and 0xffffff)).toHtml(),
+                HtmlCompat.fromHtml(String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_allowed), String.format(Locale.ENGLISH, "%06x", colorAccent and 0xffffff)), HtmlCompat.FROM_HTML_MODE_LEGACY),
+                HtmlCompat.fromHtml(String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_denied), String.format(Locale.ENGLISH, "%06x", colorError and 0xffffff)), HtmlCompat.FROM_HTML_MODE_LEGACY),
+                HtmlCompat.fromHtml(String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_hidden), String.format(Locale.ENGLISH, "%06x", colorForeground and 0xffffff)), HtmlCompat.FROM_HTML_MODE_LEGACY),
                 context.getString(R.string.permission_ask)
             )
         ) {

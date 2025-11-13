@@ -3,9 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/swipe_refresh"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:paddingStart="@dimen/rd_activity_horizontal_margin"
-    android:paddingEnd="@dimen/rd_activity_horizontal_margin">
+    android:layout_height="match_parent" >
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -17,19 +15,13 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center" />
 
-        <rikka.widget.borderview.BorderRecyclerView
+        <androidx.recyclerview.widget.RecyclerView
             android:id="@android:id/list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:layoutAnimation="@anim/stagger_layout_animation"
-            android:paddingTop="?actionBarSize"
-            app:borderBottomVisibility="never"
-            app:borderTopDrawable="@null"
-            app:borderTopVisibility="whenTop"
-            app:fitsSystemWindowsInsets="top|bottom"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
-
     </FrameLayout>
 
 </rikka.sui.widget.SmartSwipeRefreshLayout>

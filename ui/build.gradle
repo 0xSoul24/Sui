@@ -27,8 +27,8 @@ android {
             multiDexEnabled false
         }
         release {
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -50,9 +50,6 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.add("-Xlint:all")
 }
 
-configurations.configureEach {
-    exclude group: 'androidx.appcompat', module: 'appcompat'
-}
 
 dependencies {
     implementation libs.refine.runtime
@@ -63,10 +60,8 @@ dependencies {
     implementation project(':aidl')
     implementation project(':api')
     compileOnly libs.hidden.stub
-    implementation 'dev.rikka.rikkax.parcelablelist:parcelablelist:2.0.1'
 
-    implementation 'dev.rikka.rikkax.appcompat:appcompat:1.6.1'
-    implementation 'dev.rikka.rikkax.material:material:2.7.2'
+    implementation 'dev.rikka.rikkax.parcelablelist:parcelablelist:2.0.1'
     implementation 'dev.rikka.rikkax.insets:insets:1.3.0'
     implementation 'dev.rikka.rikkax.lifecycle:lifecycle-resource-livedata:1.0.1'
     implementation 'dev.rikka.rikkax.lifecycle:lifecycle-viewmodel-lazy:2.0.0'
@@ -82,45 +77,9 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.4'
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.9.4'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
 
     implementation 'com.google.android.material:material:1.13.0'
-
     implementation 'me.zhanghai.android.fastscroll:library:1.3.0'
     implementation 'me.zhanghai.android.appiconloader:appiconloader:1.5.0'
-}
-
-afterEvaluate {
-    android.applicationVariants.all { variant ->
-        def variantCapped = variant.name.capitalize()
-        def variantLowered = variant.name.toLowerCase()
-
-        if (variant.getBuildType().isMinifyEnabled()) {
-            def processResourcesTask = tasks.getByName("process${variantCapped}Resources")
-            def optimizeResourceTask = tasks.getByName("optimize${variantCapped}Resources").doLast {
-                def aapt2 = Paths.get(project.android.sdkDirectory.path, 'build-tools', project.android.buildToolsVersion, 'aapt2')
-                def zip = Paths.get(project.buildDir.path, 'intermediates',
-                        'optimized_processed_res', variantLowered, "optimize${variantCapped}Resources", "resources-${variantLowered}-optimize.ap_")
-                def map = Paths.get(project.buildDir.path, 'outputs',
-                        'mapping', variantLowered, 'resources.txt')
-                Files.createDirectories(map.getParent())
-                def optimized = new File("${zip}.opt")
-                def cmd = exec {
-                    commandLine aapt2, 'optimize', '--collapse-resource-names',
-                            '--shorten-resource-paths',
-                            '--resources-config-path', 'aapt2-resources.cfg',
-                            '--resource-path-shortening-map', map,
-                            '-o', optimized, zip
-                    ignoreExitValue false
-                }
-                if (cmd.exitValue == 0) {
-                    delete(zip)
-                    optimized.renameTo("$zip")
-                }
-            }
-            optimizeResourceTask.onlyIf {
-                !processResourcesTask.state.upToDate
-            }
-            processResourcesTask.finalizedBy(optimizeResourceTask)
-        }
-    }
 }

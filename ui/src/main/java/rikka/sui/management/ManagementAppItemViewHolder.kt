@@ -18,8 +18,10 @@
  */
 package rikka.sui.management
 
+import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,7 +29,6 @@ import android.widget.AdapterView
 import android.widget.AdapterView.OnItemSelectedListener
 import android.widget.ArrayAdapter
 import kotlinx.coroutines.Job
-import rikka.core.res.resolveColorStateList
 import rikka.recyclerview.BaseViewHolder
 import rikka.sui.databinding.ManagementAppItemBinding
 import rikka.sui.model.AppInfo
@@ -65,12 +66,17 @@ class ManagementAppItemViewHolder(
     private val pkg get() = binding.summary
     private val spinner get() = binding.button1
 
-    private val textColorSecondary = context.theme.resolveColorStateList(android.R.attr.textColorSecondary)
-    private val textColorPrimary = context.theme.resolveColorStateList(android.R.attr.textColorPrimary)
-
-    // private val optionsAdapter: ArrayAdapter<CharSequence>
+    private val textColorSecondary: ColorStateList
+    private val textColorPrimary: ColorStateList
 
     init {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)
+        textColorSecondary = context.getColorStateList(typedValue.resourceId)
+
+        context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
+        textColorPrimary = context.getColorStateList(typedValue.resourceId)
+
         itemView.setOnClickListener(this)
 
         this.itemView.setOnClickListener { spinner.performClick() }
