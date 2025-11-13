@@ -39,12 +39,21 @@ class ManagementViewModel : ViewModel() {
     private val fullList = ArrayList<AppInfo>()
 
     val appList = MutableLiveData<Resource<List<AppInfo>>>(null)
-
-    private fun handleList() {
-        val list = fullList.sortedWith(AppInfoComparator()).toList()
-
-        appList.postValue(Resource.success(list))
+    private var currentQuery: String? = null
+    private fun displayList() {
+        val listToShow = if (currentQuery.isNullOrBlank()) {
+            fullList
+        } else {
+            fullList.filter { appInfo ->
+                val appName = appInfo.label ?: ""
+                val packageName = appInfo.packageInfo.packageName ?: ""
+                appName.contains(currentQuery!!, ignoreCase = true) || packageName.contains(currentQuery!!, ignoreCase = true)
+            }
+        }
+        val sortedList = listToShow.sortedWith(AppInfoComparator())
+        appList.postValue(Resource.success(sortedList))
     }
+
 
     fun invalidateList() {
         if (appList.value?.status != Status.SUCCESS) {
@@ -52,22 +61,13 @@ class ManagementViewModel : ViewModel() {
         }
 
         viewModelScope.launch(Dispatchers.IO) {
-            handleList()
+            displayList()
         }
     }
     fun filter(query: String?) {
+        currentQuery = query
         viewModelScope.launch(Dispatchers.IO) {
-            if (query.isNullOrBlank()) {
-                handleList()
-                return@launch
-            }
-            val filteredList = fullList.filter { appInfo ->
-                val appName = appInfo.label ?: ""
-                val packageName = appInfo.packageInfo.packageName ?: ""
-
-                appName.contains(query, ignoreCase = true) || packageName.contains(query, ignoreCase = true)
-            }
-            appList.postValue(Resource.success(filteredList))
+            displayList()
         }
     }
     fun reload(context: Context) {
@@ -78,7 +78,7 @@ class ManagementViewModel : ViewModel() {
                 val fakeData = createFakeAppList()
                 fullList.clear()
                 fullList.addAll(fakeData)
-                handleList()
+                displayList()
             }
             return
         }
@@ -93,7 +93,7 @@ class ManagementViewModel : ViewModel() {
                 fullList.clear()
                 fullList.addAll(result)
 
-                handleList()
+                displayList()
             } catch (e: CancellationException) {
 
             } catch (e: Throwable) {
