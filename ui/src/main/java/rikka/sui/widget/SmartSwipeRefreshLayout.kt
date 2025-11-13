@@ -28,15 +28,22 @@ class SmartSwipeRefreshLayout @JvmOverloads constructor(
 ) : SwipeRefreshLayout(context, attrs) {
 
     private val fastScrollerHotZoneWidth = (50 * resources.displayMetrics.density).toInt()
+    private var isTouchingFastScroller = false
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
 
-        if (ev.action == MotionEvent.ACTION_DOWN || ev.action == MotionEvent.ACTION_MOVE) {
-            val x = ev.x
-            val width = width
-            if (x > width - fastScrollerHotZoneWidth) {
-                return false
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                val x = ev.x
+                val width = width
+                isTouchingFastScroller = (x > width - fastScrollerHotZoneWidth)
             }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isTouchingFastScroller = false
+            }
+        }
+        if (isTouchingFastScroller) {
+            return false
         }
         return super.onInterceptTouchEvent(ev)
     }
