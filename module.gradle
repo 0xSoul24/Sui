@@ -9,10 +9,10 @@ ext {
     moduleId = "zygisk-sui"
 
     moduleName = "Zygisk - Sui"
-    moduleAuthor = "Rikka, yangFenTuoZi, XiaoTong"
+    moduleAuthor = "Rikka, yujincheng08, Kr328, yangFenTuoZi, XiaoTong"
     moduleDescription = "Modern superuser interface implementation. This module requires Magisk 24.0+ and Zygisk enabled. DO NOT add SystemUI and Settings to DenyList."
     moduleVersionMinor = 5
-    moduleVersionPatch = 4.2
+    moduleVersionPatch = 4.3
     moduleVersion = "v${api_version_major}.${moduleVersionMinor}.${moduleVersionPatch}"
     moduleVersionCode = gitCommitCount
 
