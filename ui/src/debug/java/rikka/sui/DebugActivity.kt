@@ -19,6 +19,7 @@
 package rikka.sui
 
 import android.os.Bundle
+import android.util.TypedValue
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -33,6 +34,7 @@ class DebugActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
@@ -40,6 +42,18 @@ class DebugActivity : AppCompatActivity() {
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
+        try {
+            val typedValue = TypedValue()
+            theme.resolveAttribute(androidx.appcompat.R.attr.colorAccent, typedValue, true)
+            val accentColor = typedValue.data
+            val accentHex = String.format("#%06X", 0xFFFFFF and accentColor)
+            val subtitleHtml = "<font color='$accentHex'>$accentHex</font>"
+            val coloredSubtitle = androidx.core.text.HtmlCompat.fromHtml(subtitleHtml, androidx.core.text.HtmlCompat.FROM_HTML_MODE_LEGACY)
+            supportActionBar?.title = "Sui(Debug)"
+            supportActionBar?.subtitle = coloredSubtitle
+        } catch (e: Exception) {
+            supportActionBar?.title = "Sui(Debug)"
+        }
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()

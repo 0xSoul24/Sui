@@ -33,7 +33,7 @@ import rikka.recyclerview.BaseRecyclerViewAdapter
 import rikka.recyclerview.ClassCreatorPool
 import rikka.sui.R
 import rikka.sui.model.AppInfo
-import rikka.sui.server.SuiConfig
+
 class ManagementAdapter(context: Context) : BaseRecyclerViewAdapter<ClassCreatorPool>(), PopupTextProvider {
 
     init {
@@ -52,7 +52,12 @@ class ManagementAdapter(context: Context) : BaseRecyclerViewAdapter<ClassCreator
         theme.resolveAttribute(android.R.attr.colorForeground, typedValue, true)
         val colorForeground = typedValue.data
 
-        val textColorTertiary = context.getColorStateList(android.R.color.tertiary_text_light)
+        theme.resolveAttribute(android.R.attr.textColorTertiary, typedValue, true)
+        val textColorTertiary = try {
+            context.getColorStateList(typedValue.resourceId)
+        } catch (e: Exception) {
+            android.content.res.ColorStateList.valueOf(android.graphics.Color.GRAY)
+        }
 
         val colorError = if (isNight) 0xFF8A80 else 0xFF5252
 

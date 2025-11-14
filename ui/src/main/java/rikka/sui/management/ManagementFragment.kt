@@ -141,11 +141,16 @@ class ManagementFragment : AppFragment() {
         val searchItem = menu.findItem(R.id.action_search)
         val searchView = searchItem.actionView as SearchView
 
+        var isSearchViewInitialized = false
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 return false
             }
             override fun onQueryTextChange(newText: String?): Boolean {
+                if (!isSearchViewInitialized && newText.isNullOrEmpty()) {
+                    isSearchViewInitialized = true
+                    return true
+                }
                 viewModel.filter(newText)
                 return true
             }

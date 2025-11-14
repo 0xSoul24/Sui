@@ -9,8 +9,8 @@ pluginManagement {
         maven { url "https://maven.aliyun.com/repository/public" }
     }
     plugins {
-        id("com.android.application") version "8.13.0"
-        id("com.android.library") version "8.13.0"
+        id("com.android.application") version "8.13.1"
+        id("com.android.library") version "8.13.1"
         id("org.jetbrains.kotlin.android") version "2.2.21"
         id("dev.rikka.tools.autoresconfig") version "1.2.2"
         id("dev.rikka.tools.materialthemebuilder") version "1.5.1"

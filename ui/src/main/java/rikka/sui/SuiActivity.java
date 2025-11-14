@@ -16,7 +16,6 @@
  *
  * Copyright (c) 2021 Sui Contributors
  */
-
 package rikka.sui;
 
 import android.app.ActivityManager;
@@ -24,9 +23,7 @@ import android.app.Application;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Build;
-
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 
 import java.util.Objects;
 
@@ -38,22 +35,31 @@ public class SuiActivity extends AppActivity {
     public SuiActivity(Application application, Resources resources) {
         super(application, resources);
     }
+    private int resolveThemeColor(@androidx.annotation.AttrRes int attrRes) {
+        android.util.TypedValue typedValue = new android.util.TypedValue();
+        getTheme().resolveAttribute(attrRes, typedValue, true);
+        return typedValue.data;
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this);
         setContentView(R.layout.main);
         setTitle("Sui");
         Objects.requireNonNull(getSupportActionBar()).setSubtitle(BuildConfig.VERSION_NAME);
 
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragment_container, new ManagementFragment())
-                .commit();
+        if (getSupportFragmentManager().findFragmentById(R.id.fragment_container) == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new ManagementFragment())
+                    .commit();
+        }
+        invalidateOptionsMenu();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             ActivityManager.TaskDescription taskDescription = new ActivityManager.TaskDescription.Builder()
                     .setLabel("Sui")
-                    .setPrimaryColor(ContextCompat.getColor(this, com.google.android.material.R.color.design_default_color_primary))
+                    .setPrimaryColor(resolveThemeColor(androidx.appcompat.R.attr.colorPrimary))
                     .build();
             setTaskDescription(taskDescription);
         } else {
