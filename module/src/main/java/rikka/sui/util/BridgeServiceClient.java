@@ -22,15 +22,13 @@ package rikka.sui.util;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
+import android.os.RemoteException;
 import android.os.ServiceManager;
 
 import androidx.annotation.Nullable;
 
-import java.util.List;
-
 import moe.shizuku.server.IShizukuService;
-import rikka.parcelablelist.ParcelableListSlice;
-import rikka.sui.model.AppInfo;
+import rikka.shizuku.ShizukuApiConstants;
 import rikka.sui.server.ServerConstants;
 
 public class BridgeServiceClient {
@@ -123,5 +121,21 @@ public class BridgeServiceClient {
             reply.recycle();
         }
         return result;
+    }
+    public static void requestPinnedShortcut() throws RemoteException {
+        IShizukuService service = getService();
+        if (service == null) {
+            throw new RemoteException("Sui service is not available.");
+        }
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        try {
+            data.writeInterfaceToken(ShizukuApiConstants.BINDER_DESCRIPTOR);
+            service.asBinder().transact(ServerConstants.BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI, data, reply, 0);
+            reply.readException();
+        } finally {
+            data.recycle();
+            reply.recycle();
+        }
     }
 }

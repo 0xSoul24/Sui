@@ -595,6 +595,22 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             }
             return true;
         }
+        if (code == ServerConstants.BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI) {
+            data.enforceInterface(ShizukuApiConstants.BINDER_DESCRIPTOR);
+
+            try {
+                if (systemUiApplication != null) {
+                    systemUiApplication.asBinder().transact(ServerConstants.BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_SERVER, Parcel.obtain(), null, IBinder.FLAG_ONEWAY);
+                    reply.writeNoException();
+                } else {
+                    reply.writeException(new IllegalStateException("SystemUI is not attached yet."));
+                }
+            } catch (Throwable e) {
+                LOGGER.w(e, "Failed to relay request pinned shortcut to SystemUI");
+                reply.writeException(new RuntimeException("Failed to relay request to SystemUI", e));
+            }
+            return true;
+        }
         return super.onTransact(code, data, reply, flags);
     }
 

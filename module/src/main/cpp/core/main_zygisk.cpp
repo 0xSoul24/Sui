@@ -54,7 +54,7 @@ public:
             strcpy(app_data_dir, appDataDir.c_str());
         }
 #endif
-        LOGD("preAppSpecialize: %s %s", process_name, app_data_dir);
+        LOGI("SuiZygisk: preAppSpecialize: uid=%d, process=%s, app_data_dir=%s", args->uid, process_name, app_data_dir);
 
         InitCompanion(false, args->uid, process_name);
 
@@ -233,10 +233,13 @@ static void CompanionEntry(int socket) {
         int uid = read_int(socket);
         read_full(socket, process_name, kProcessNameMax);
 
+        LOGI("SuiCompanion: Checking app: uid=%d, process=%s", uid, process_name);
         if (uid == manager_uid && strcmp(process_name, manager_process) == 0) {
             whoami = Identity::SYSTEM_UI;
+            LOGI("SuiCompanion: Matched SYSTEM_UI!");
         } else if (uid == settings_uid && strcmp(process_name, settings_process) == 0) {
             whoami = Identity::SETTINGS;
+            LOGI("SuiCompanion: Matched SETTINGS!");
         } else {
             whoami = Identity::IGNORE;
         }

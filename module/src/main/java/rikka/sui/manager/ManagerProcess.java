@@ -82,6 +82,27 @@ public class ManagerProcess {
                 LOGGER.e(e, "showPermissionConfirmation");
             }
         }
+
+        @Override
+        public boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
+            if (code == ServerConstants.BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_SERVER) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                    try {
+                        Context context = ActivityThread.currentActivityThread().getApplication();
+                        if (context != null && suiApk != null && suiApk.getResources() != null) {
+                            LOGGER.i("Executing requestPinnedShortcut from RPC with correct resources...");
+                            rikka.sui.shortcut.SuiShortcut.requestPinnedShortcut(context, suiApk.getResources());
+                        } else {
+                            LOGGER.e("Failed to get context or suiApk resources for shortcut creation.");
+                        }
+                    } catch (Throwable e) {
+                        LOGGER.e(e, "Failed to execute requestPinnedShortcut from RPC");
+                    }
+                });
+                return true;
+            }
+            return super.onTransact(code, data, reply, flags);
+        }
     };
 
     private static void showManagement() {

@@ -21,6 +21,7 @@ package rikka.sui.util;
 
 import android.os.IBinder;
 import android.os.Parcel;
+import android.os.RemoteException;
 import android.os.ServiceManager;
 
 import androidx.annotation.Nullable;
@@ -34,6 +35,7 @@ import rikka.sui.model.AppInfo;
 public class BridgeServiceClient {
 
     private static final int BINDER_TRANSACTION_getApplications = 10001;
+    private static final int BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI = 10005;
 
     private static IBinder binder;
     private static IShizukuService service;
@@ -144,4 +146,20 @@ public class BridgeServiceClient {
         return result;
     }
 
+    public static void requestPinnedShortcut() throws RemoteException {
+        IShizukuService service = getService();
+        if (service == null) {
+            throw new RemoteException("Sui service is not available.");
+        }
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        try {
+            data.writeInterfaceToken("moe.shizuku.server.IShizukuService");
+            service.asBinder().transact(BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI, data, reply, 0);
+            reply.readException();
+        } finally {
+            data.recycle();
+            reply.recycle();
+        }
+    }
 }

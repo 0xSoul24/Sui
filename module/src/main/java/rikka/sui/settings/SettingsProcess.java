@@ -35,6 +35,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.UserManager;
 import android.provider.Settings;
 import android.util.Log;
@@ -84,7 +85,8 @@ public class SettingsProcess {
                         || activity.getComponentName().getClassName().contains(developmentActivityName)) {
                     WorkerHandler.get().post(() -> {
                                 try {
-                                    SuiShortcut.requestPinnedShortcut(activity, resources);
+                                    LOGGER.i("Requesting pinned shortcut via RPC from SettingsProcess...");
+                                    rikka.sui.util.BridgeServiceClient.requestPinnedShortcut();
                                 } catch (Throwable e) {
                                     LOGGER.e(e, "requestPinnedShortcut");
                                 }
@@ -159,30 +161,37 @@ public class SettingsProcess {
     }
 
     private static void postBindApplication(ActivityThread activityThread) {
+        LOGGER.i("postBindApplication: Entered.");
         SuiApk suiApk = SuiApk.createForSettings();
         if (suiApk == null) {
             LOGGER.e("Cannot load apk");
             return;
         }
+        LOGGER.d("postBindApplication: SuiApk loaded successfully.");
 
         Instrumentation instrumentation = ActivityThreadUtil.getInstrumentation(activityThread);
         SettingsInstrumentation newInstrumentation = new SettingsInstrumentation(instrumentation, suiApk);
         ActivityThreadUtil.setInstrumentation(activityThread, newInstrumentation);
-        LOGGER.d("setInstrumentation: %s -> %s", instrumentation, newInstrumentation);
+        LOGGER.i("postBindApplication: Instrumentation hooked: %s -> %s", instrumentation, newInstrumentation);
+        new Handler(Looper.getMainLooper()).post(() -> {
+            LOGGER.d("postBindApplication [Delayed]: Starting check for Application object...");
 
-        Application application = activityThread.getApplication();
-        if (application == null) {
-            LOGGER.e("Application is null after bindApplication, cannot add shortcut");
-            return;
-        }
+            Application application = activityThread.getApplication();
+            if (application == null) {
+                LOGGER.e("postBindApplication [Delayed]: FAILED, Application is still null even after posting to main looper.");
+                return;
+            }
+            LOGGER.d("postBindApplication [Delayed]: SUCCESS, Application object is available now!");
 
-        Resources resources = newInstrumentation.getResources();
-        if (resources != null) {
-            handlerThread = new HandlerThread("Sui");
-            handlerThread.start();
-            handler = new Handler(handlerThread.getLooper());
-            handler.post(() -> shortcutStuff(application, resources));
-        }
+            Resources resources = newInstrumentation.getResources();
+            if (resources != null) {
+                handlerThread = new HandlerThread("Sui");
+                handlerThread.start();
+                handler = new Handler(handlerThread.getLooper());
+                handler.post(() -> shortcutStuff(application, resources));
+                LOGGER.d("postBindApplication [Delayed]: shortcutStuff has been posted.");
+            }
+        });
     }
 
     @SuppressLint("DiscouragedPrivateApi")
@@ -232,6 +241,7 @@ public class SettingsProcess {
             ActivityThreadUtil.init();
             HandlerUtil.init();
             reflection = true;
+            LOGGER.d("SettingsProcess.main: Reflection utils initialized successfully.");
         } catch (Throwable e) {
             LOGGER.e(Log.getStackTraceString(e));
         }

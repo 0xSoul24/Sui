@@ -155,6 +155,81 @@ class ManagementFragment : AppFragment() {
                 return true
             }
         })
+        val overflowItem = menu.findItem(R.id.action_overflow)
+        requireActivity().findViewById<View>(R.id.toolbar)?.post {
+            val overflowButtonView = requireActivity().findViewById<View>(R.id.action_overflow)
+            if (overflowButtonView != null) {
+                overflowButtonView.setOnClickListener { anchorView ->
+                    showOverflowPopupMenu(anchorView)
+                }
+            } else {
+                overflowItem.setOnMenuItemClickListener {
+                    showOverflowPopupMenu(requireActivity().findViewById(R.id.toolbar))
+                    true
+                }
+            }
+        }
+    }
+    private fun showOverflowPopupMenu(anchorView: View) {
+        val popupMenu = androidx.appcompat.widget.PopupMenu(requireContext(), anchorView)
+        popupMenu.inflate(R.menu.overflow_popup_menu)
+        popupMenu.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_add_shortcut -> {
+                    try {
+                        rikka.sui.util.BridgeServiceClient.requestPinnedShortcut()
+                        android.widget.Toast.makeText(requireContext(), "创建成功", android.widget.Toast.LENGTH_SHORT).show()
+
+                    } catch (e: Throwable) {
+                        android.util.Log.e("SuiShortcutRPC", "Failed to request pinned shortcut via RPC", e)
+                        android.widget.Toast.makeText(requireContext(), "创建失败: " + e.message, android.widget.Toast.LENGTH_LONG).show()
+                    }
+                    true
+                }
+                R.id.action_about -> {
+                    showAboutDialog()
+                    true
+                }
+                else -> false
+            }
+        }
+        popupMenu.show()
+    }
+    private fun resolveThemeColor(@androidx.annotation.AttrRes attrRes: Int): Int {
+        val typedValue = android.util.TypedValue()
+        requireContext().theme.resolveAttribute(attrRes, typedValue, true)
+        return typedValue.data
+    }
+
+    private fun showAboutDialog() {
+        val versionName = try {
+            rikka.sui.BuildConfig.VERSION_NAME
+        } catch (e: Exception) {
+            "Unknown"
+        }
+        val message = android.text.SpannableStringBuilder().apply {
+            val title = "Sui\n"
+            append(title)
+            val typedValue = android.util.TypedValue()
+            requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
+            setSpan(android.text.style.RelativeSizeSpan(1.2f), 0, title.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, title.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(android.text.style.ForegroundColorSpan(typedValue.data), 0, title.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            append("v$versionName\n\n")
+            append("本项目遵循 GPLv3 在 ")
+            val startGithub = length
+            append("GitHub")
+            setSpan(android.text.style.URLSpan("https://github.com/XiaoTong6666/Sui"), startGithub, length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            append(" 开源 \nCopyright (c) 2021 Sui Contributors\n\n")
+            append("贡献者: Rikka, yujincheng08, Kr328, yangFenTuoZi, XiaoTong")
+        }
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setMessage(message)
+            .setPositiveButton(R.string.about_button_ok, null)
+            .show()
+            .findViewById<android.widget.TextView>(android.R.id.message)
+            ?.movementMethod = android.text.method.LinkMovementMethod.getInstance()
     }
 
     override fun onDestroyView() {
