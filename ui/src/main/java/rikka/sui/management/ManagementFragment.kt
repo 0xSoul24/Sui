@@ -178,11 +178,11 @@ class ManagementFragment : AppFragment() {
                 R.id.action_add_shortcut -> {
                     try {
                         rikka.sui.util.BridgeServiceClient.requestPinnedShortcut()
-                        android.widget.Toast.makeText(requireContext(), "创建成功", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(requireContext(), "在尝试创建喵...", android.widget.Toast.LENGTH_SHORT).show()
 
                     } catch (e: Throwable) {
                         android.util.Log.e("SuiShortcutRPC", "Failed to request pinned shortcut via RPC", e)
-                        android.widget.Toast.makeText(requireContext(), "创建失败: " + e.message, android.widget.Toast.LENGTH_LONG).show()
+                        android.widget.Toast.makeText(requireContext(), "创建失败喵: " + e.message, android.widget.Toast.LENGTH_LONG).show()
                     }
                     true
                 }
@@ -220,7 +220,7 @@ class ManagementFragment : AppFragment() {
             val startGithub = length
             append("GitHub")
             setSpan(android.text.style.URLSpan("https://github.com/XiaoTong6666/Sui"), startGithub, length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            append(" 开源 \nCopyright (c) 2021 Sui Contributors\n\n")
+            append(" 开源 \nCopyright (c) 2021-2025 Sui Contributors\n\n")
             append("贡献者: Rikka, yujincheng08, Kr328, yangFenTuoZi, XiaoTong")
         }
 

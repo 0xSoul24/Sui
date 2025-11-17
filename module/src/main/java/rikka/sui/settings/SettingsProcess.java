@@ -27,7 +27,10 @@ import android.app.Activity;
 import android.app.ActivityThread;
 import android.app.Application;
 import android.app.Instrumentation;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.os.Binder;
@@ -182,6 +185,29 @@ public class SettingsProcess {
                 return;
             }
             LOGGER.d("postBindApplication [Delayed]: SUCCESS, Application object is available now!");
+
+            try {
+                BroadcastReceiver shortcutReceiver = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        if ("rikka.sui.ACTION_REQUEST_PINNED_SHORTCUT".equals(intent.getAction())) {
+                            LOGGER.i("Shortcut creation request received via broadcast!");
+                            WorkerHandler.get().post(() -> {
+                                try {
+                                    SuiShortcut.requestPinnedShortcut(application, suiApk.getResources());
+                                } catch (Throwable e) {
+                                    LOGGER.e(e, "Failed to create shortcut from broadcast receiver");
+                                }
+                            });
+                        }
+                    }
+                };
+                IntentFilter filter = new IntentFilter("rikka.sui.ACTION_REQUEST_PINNED_SHORTCUT");
+                application.registerReceiver(shortcutReceiver, filter, Context.RECEIVER_EXPORTED);
+                LOGGER.i("Shortcut creation broadcast receiver registered.");
+            } catch (Throwable e) {
+                LOGGER.e(e, "Failed to register shortcut creation broadcast receiver.");
+            }
 
             Resources resources = newInstrumentation.getResources();
             if (resources != null) {

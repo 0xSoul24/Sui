@@ -85,18 +85,18 @@ public class ManagerProcess {
 
         @Override
         public boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
-            if (code == ServerConstants.BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_SERVER) {
+            if (code == ServerConstants.BINDER_TRANSACTION_SEND_SHORTCUT_BROADCAST) {
                 new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                     try {
                         Context context = ActivityThread.currentActivityThread().getApplication();
-                        if (context != null && suiApk != null && suiApk.getResources() != null) {
-                            LOGGER.i("Executing requestPinnedShortcut from RPC with correct resources...");
-                            rikka.sui.shortcut.SuiShortcut.requestPinnedShortcut(context, suiApk.getResources());
-                        } else {
-                            LOGGER.e("Failed to get context or suiApk resources for shortcut creation.");
+                        if (context != null) {
+                            LOGGER.i("Sending shortcut creation broadcast...");
+                            Intent intent = new Intent("rikka.sui.ACTION_REQUEST_PINNED_SHORTCUT");
+                            intent.setPackage("com.android.settings");
+                            context.sendBroadcast(intent);
                         }
                     } catch (Throwable e) {
-                        LOGGER.e(e, "Failed to execute requestPinnedShortcut from RPC");
+                        LOGGER.e(e, "Failed to send shortcut creation broadcast");
                     }
                 });
                 return true;

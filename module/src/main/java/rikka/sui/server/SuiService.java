@@ -600,7 +600,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
 
             try {
                 if (systemUiApplication != null) {
-                    systemUiApplication.asBinder().transact(ServerConstants.BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_SERVER, Parcel.obtain(), null, IBinder.FLAG_ONEWAY);
+                    systemUiApplication.asBinder().transact(ServerConstants.BINDER_TRANSACTION_SEND_SHORTCUT_BROADCAST, data, null, IBinder.FLAG_ONEWAY);
                     reply.writeNoException();
                 } else {
                     reply.writeException(new IllegalStateException("SystemUI is not attached yet."));
