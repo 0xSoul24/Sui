@@ -4,7 +4,7 @@ Modern super user interface (SUI) implementation on Android. <del>The name, Sui,
 
 ## Introduction
 
-Sui provides Java APIs, [Shizuku API](https://github.com/RikkaApps/Shizuku-API), for root apps. It mainly provides the ability to use Android APIs directly (almost in Java as the identity of the root, and start app's own AIDL-style Java service under root. This will make root app development much more comfortable.
+Sui provides Java APIs, [Shizuku API](https://github.com/XiaoTong6666/Shizuku-API/), for root apps. It mainly provides the ability to use Android APIs directly (almost in Java as the identity of the root, and start app's own AIDL-style Java service under root. This will make root app development much more comfortable.
 
 Another advantage is that Sui does not add binaries to `PATH` and does not install a manager app. This means we no longer need to spend a huge amount of time to fight with apps that detect them.
 
@@ -35,7 +35,7 @@ Note, the behavior of existing apps that only supports "su" will NOT change.
 
 ### Install
 
-You can download and install Sui from Magisk directly. Or, download the zip from [release](https://github.com/RikkaApps/Sui/releases/) and use "Install from storage" in Magisk.
+You can download and install Sui from Magisk directly. Or, download the zip from [release](https://github.com/XiaoTong6666/Sui/releases) and use "Install from storage" in Magisk.
 
 ### Management UI
 
