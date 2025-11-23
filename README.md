@@ -63,23 +63,36 @@ Clone with `git clone --recurse-submodules`.
 
 Gradle tasks:
 
-`Flavor` could be <del>`Riru` and</del> `Zygisk`, and `BuildType` could be `Debug` and `Release`.
+`BuildType` could be `Debug` and `Release`.
 
-* `:module:assemble<Flavor><BuildType>`
+* `:module:assemble<BuildType>`
 
-   Generate Magisk module zip to `out`.
+  Build the module. After assemble finishes, Magisk module zip will be generated to `out`.
 
-* `:module:push<Flavor><BuildType>`
+* `:module:zip<BuildType>`
 
-   Push the zip with adb to `/data/local/tmp`.
+  Generate Magisk module zip to `out`.
 
-* `:module:flash<Flavor><BuildType>`
+* `:module:push<BuildType>`
 
-   Install the zip with `adb shell su -c magisk --install-module`.
+  Push the zip with adb to `/data/local/tmp`.
 
-* `:module:flashAndReboot<Flavor><BuildType>`
+* `:module:flash<BuildType>`
 
-   Install the zip and reboot the device.
+  Install the zip with `adb shell su -c magisk --install-module`.
+
+* `:module:flashWithKsud<BuildType>`
+
+  Install the zip with `adb shell su -c ksud module install`.
+
+* `:module:flashAndReboot<BuildType>`
+
+  Install the zip and reboot the device.
+
+* `:module:flashWithKsudAndReboot<BuildType>`
+
+  Install the zip with ksud and reboot the device.
+
 
 ## Internals
 
