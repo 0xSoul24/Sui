@@ -34,6 +34,8 @@
 #include <sys/sendfile.h>
 #include <dlfcn.h>
 #include <cinttypes>
+#include <string>
+#include <vector>
 
 #include "android.h"
 #include "logging.h"
@@ -43,12 +45,39 @@
 #include "binder_hook.h"
 #include "config.h"
 
+typedef uid_t (*AIBinder_getCallingUid_t)();
+typedef pid_t (*AIBinder_getCallingPid_t)();
+
 namespace SystemServer {
 
     static jclass mainClass = nullptr;
     static jmethodID my_execTransactMethodID;
 
     static jint startShortcutTransactionCode = -1;
+
+    static std::string get_process_name(pid_t pid) {
+        std::string path = "/proc/" + std::to_string(pid) + "/cmdline";
+        int fd = open(path.c_str(), O_RDONLY);
+        if (fd < 0) return "";
+
+        char buf[256] = {0};
+        ssize_t len = read(fd, buf, sizeof(buf) - 1);
+        close(fd);
+
+        if (len > 0) {
+            return std::string(buf);
+        }
+        return "";
+    }
+
+    static bool is_blacklisted_app(pid_t pid) {
+        std::string process_name = get_process_name(pid);
+        if (process_name.empty()) return false;
+        if (process_name.find("icu.nullptr.nativetest") != std::string::npos) return true;
+        if (process_name.find("com.android.nativetest") != std::string::npos) return true;
+        // if (process_name.find("com.example.suidetect") != std::string::npos) return true;
+        return false;
+    }
 
     static bool installDex(JNIEnv *env, Dex *dexFile) {
         if (android_get_device_api_level() < 26) {
@@ -110,6 +139,27 @@ namespace SystemServer {
         va_end(copy);
 
         if (code == BridgeService::BRIDGE_TRANSACTION_CODE) {
+
+            static void* libbinder_ndk = dlopen("libbinder_ndk.so", RTLD_NOW);
+            static AIBinder_getCallingUid_t get_uid = nullptr;
+            static AIBinder_getCallingPid_t get_pid = nullptr;
+
+            if (libbinder_ndk) {
+                if (!get_uid) get_uid = (AIBinder_getCallingUid_t)dlsym(libbinder_ndk, "AIBinder_getCallingUid");
+                if (!get_pid) get_pid = (AIBinder_getCallingPid_t)dlsym(libbinder_ndk, "AIBinder_getCallingPid");
+            }
+
+            if (get_uid && get_pid) {
+                uid_t uid = get_uid();
+                if (uid < 10000) {}
+                else {
+                    pid_t pid = get_pid();
+                    if (is_blacklisted_app(pid)) {
+                        return false;
+                    }
+                }
+            }
+
             *res = env->CallStaticBooleanMethod(mainClass, my_execTransactMethodID, obj, code, dataObj, replyObj, flags);
             return true;
         }/* else if (startShortcutTransactionCode != -1 && code == startShortcutTransactionCode) {
