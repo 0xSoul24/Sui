@@ -1,10 +1,11 @@
 # Sui
+[🇨🇳中文README](https://github.com/XiaoTong6666/Sui/blob/main/README.zh-CN.md)    
 
 Modern super user interface (SUI) implementation on Android. <del>The name, Sui, also comes from [a character](https://github.com/XiaoTong6666/Sui/issues/1).</del>
 
 ## Introduction
 
-Sui provides Java APIs, [Shizuku API](https://github.com/XiaoTong6666/Shizuku-API/), for root apps. It mainly provides the ability to use Android APIs directly (almost in Java as the identity of the root, and start app's own AIDL-style Java service under root. This will make root app development much more comfortable.
+Sui provides Java APIs, [Shizuku API](https://github.com/RikkaApps/Shizuku-API), for root apps. It mainly provides the ability to use Android APIs directly (almost in Java as the identity of the root, and start app's own AIDL-style Java service under root. This will make root app development much more comfortable.
 
 Another advantage is that Sui does not add binaries to `PATH` and does not install a manager app. This means we no longer need to spend a huge amount of time to fight with apps that detect them.
 
@@ -96,7 +97,7 @@ Gradle tasks:
 
 ## Internals
 
-Sui requires [Magisk](https://github.com/topjohnwu/Magisk) <del>(and [Riru](https://github.com/RikkaApps) for non-Zygisk version)</del>. Magisk allows us to run processes as uid 0 and a "do anything" SELinux context. <del>Riru or</del> Zygisk allows us to inject into system server process and app processes.
+Sui requires [Zygisk](https://github.com/topjohnwu/zygisk-module-sample). Zygisk allows us to inject into system server process and app processes.
 
 In short, there are four parts:
 
