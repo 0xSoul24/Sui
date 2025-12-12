@@ -85,7 +85,7 @@ afterEvaluate {
         def buildTypeCapped = variant.getBuildType().getName().capitalize()
         def buildTypeLowered = variant.getBuildType().getName().toLowerCase()
 
-        def zipName = "sui-${moduleVersion}-${buildTypeLowered}.zip"
+        def zipName = "sui-${moduleVersion}_${moduleVersionCode.toString()}-${buildTypeLowered}.zip"
         def magiskDir = file("$outDir/${buildTypeLowered}")
 
         tasks.getByName("pre${variantCapped}Build").dependsOn(":ui:assemble${buildTypeCapped}")
@@ -104,7 +104,7 @@ afterEvaluate {
                 expand([
                         id         : moduleId,
                         name       : moduleName,
-                        version    : moduleVersion,
+                        version    : "${moduleVersion} (${moduleVersionCode.toString()})",
                         versionCode: moduleVersionCode.toString(),
                         author     : moduleAuthor,
                         description: moduleDescription,
