@@ -56,12 +56,14 @@ public class SuiActivity extends AppActivity {
         }
         invalidateOptionsMenu();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        if (Build.VERSION.SDK_INT >= 33) {
             ActivityManager.TaskDescription taskDescription = new ActivityManager.TaskDescription.Builder()
                     .setLabel("Sui")
                     .setPrimaryColor(resolveThemeColor(androidx.appcompat.R.attr.colorPrimary))
                     .build();
             setTaskDescription(taskDescription);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            setTaskDescription(new ActivityManager.TaskDescription("Sui", 0, resolveThemeColor(androidx.appcompat.R.attr.colorPrimary)));
         } else {
             setTaskDescription(new ActivityManager.TaskDescription("Sui"));
         }
