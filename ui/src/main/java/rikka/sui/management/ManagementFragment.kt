@@ -90,6 +90,7 @@ class ManagementFragment : AppFragment() {
 //                OnBorderVisibilityChangedListener { top: Boolean, _: Boolean, _: Boolean, _: Boolean ->
 //                    appActivity?.appBar?.setRaised(!top)
 //                }
+            setHasFixedSize(true)
             adapter = this@ManagementFragment.adapter
             (itemAnimator as DefaultItemAnimator).supportsChangeAnimations = false
             fixEdgeEffect()

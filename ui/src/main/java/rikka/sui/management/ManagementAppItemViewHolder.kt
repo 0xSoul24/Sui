@@ -60,6 +60,7 @@ class ManagementAppItemViewHolder(
     private inline val uid get() = ai!!.uid
 
     private var loadIconJob: Job? = null
+    private var suppressSelectionCallback = false
 
     private val icon get() = binding.icon
     private val name get() = binding.title
@@ -69,21 +70,9 @@ class ManagementAppItemViewHolder(
     private val textColorSecondary: ColorStateList
     private val textColorPrimary: ColorStateList
 
-    init {
-        val typedValue = TypedValue()
-        context.theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)
-        textColorSecondary = context.getColorStateList(typedValue.resourceId)
-
-        context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
-        textColorPrimary = context.getColorStateList(typedValue.resourceId)
-
-        itemView.setOnClickListener(this)
-
-        this.itemView.setOnClickListener { spinner.performClick() }
-    }
-
     private val onItemSelectedListener: OnItemSelectedListener = object : OnItemSelectedListener {
         override fun onItemSelected(parent: AdapterView<*>, view: View, position: Int, id: Long) {
+            if (suppressSelectionCallback) return
             val newValue = when (position) {
                 0 -> SuiConfig.FLAG_ALLOWED
                 1 -> SuiConfig.FLAG_DENIED
@@ -98,11 +87,26 @@ class ManagementAppItemViewHolder(
                 return
             }
             data.flags = data.flags and SuiConfig.MASK_PERMISSION.inv() or newValue
-            parent.setSelection(position)
+            setSpinnerSelection(position)
             syncViewStateForFlags()
         }
 
         override fun onNothingSelected(parent: AdapterView<*>?) {}
+    }
+
+    init {
+        val typedValue = TypedValue()
+        context.theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)
+        textColorSecondary = context.getColorStateList(typedValue.resourceId)
+
+        context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
+        textColorPrimary = context.getColorStateList(typedValue.resourceId)
+
+        itemView.setOnClickListener(this)
+
+        this.itemView.setOnClickListener { spinner.performClick() }
+        spinner.adapter = optionsAdapter
+        spinner.onItemSelectedListener = onItemSelectedListener
     }
 
     override fun onClick(v: View) {
@@ -120,9 +124,6 @@ class ManagementAppItemViewHolder(
             data.label
         }
         pkg.text = ai!!.packageName
-
-        spinner.adapter = optionsAdapter
-        spinner.onItemSelectedListener = onItemSelectedListener
 
         syncViewStateForFlags()
 
@@ -145,19 +146,25 @@ class ManagementAppItemViewHolder(
         if (allowed) {
             binding.title.setTextColor(textColorPrimary)
             binding.title.typeface = SANS_SERIF_MEDIUM
-            binding.button1.setSelection(0)
+            setSpinnerSelection(0)
         } else if (denied) {
             binding.title.setTextColor(textColorSecondary)
             binding.title.typeface = SANS_SERIF
-            binding.button1.setSelection(1)
+            setSpinnerSelection(1)
         } else if (hidden) {
             binding.title.setTextColor(textColorSecondary)
             binding.title.typeface = SANS_SERIF
-            binding.button1.setSelection(2)
+            setSpinnerSelection(2)
         } else {
             binding.title.setTextColor(textColorSecondary)
             binding.title.typeface = SANS_SERIF
-            binding.button1.setSelection(3)
+            setSpinnerSelection(3)
         }
+    }
+
+    private fun setSpinnerSelection(position: Int) {
+        suppressSelectionCallback = true
+        spinner.setSelection(position, false)
+        suppressSelectionCallback = false
     }
 }
