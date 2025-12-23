@@ -140,24 +140,40 @@ class ManagementAppItemViewHolder(
     }
 
     private fun syncViewStateForFlags() {
-        val allowed = data.flags and SuiConfig.FLAG_ALLOWED != 0
-        val denied = data.flags and SuiConfig.FLAG_DENIED != 0
-        val hidden = data.flags and SuiConfig.FLAG_HIDDEN != 0
+        val explicitFlags = data.flags and SuiConfig.MASK_PERMISSION
+        val effectiveFlags = if (explicitFlags != 0) {
+            explicitFlags
+        } else {
+            data.defaultFlags and SuiConfig.MASK_PERMISSION
+        }
+        val allowed = effectiveFlags and SuiConfig.FLAG_ALLOWED != 0
+        val denied = effectiveFlags and SuiConfig.FLAG_DENIED != 0
+        val hidden = effectiveFlags and SuiConfig.FLAG_HIDDEN != 0
+
         if (allowed) {
             binding.title.setTextColor(textColorPrimary)
             binding.title.typeface = SANS_SERIF_MEDIUM
-            setSpinnerSelection(0)
         } else if (denied) {
             binding.title.setTextColor(textColorSecondary)
             binding.title.typeface = SANS_SERIF
-            setSpinnerSelection(1)
         } else if (hidden) {
             binding.title.setTextColor(textColorSecondary)
             binding.title.typeface = SANS_SERIF
-            setSpinnerSelection(2)
         } else {
             binding.title.setTextColor(textColorSecondary)
             binding.title.typeface = SANS_SERIF
+        }
+
+        val explicitAllowed = explicitFlags and SuiConfig.FLAG_ALLOWED != 0
+        val explicitDenied = explicitFlags and SuiConfig.FLAG_DENIED != 0
+        val explicitHidden = explicitFlags and SuiConfig.FLAG_HIDDEN != 0
+        if (explicitAllowed) {
+            setSpinnerSelection(0)
+        } else if (explicitDenied) {
+            setSpinnerSelection(1)
+        } else if (explicitHidden) {
+            setSpinnerSelection(2)
+        } else {
             setSpinnerSelection(3)
         }
     }

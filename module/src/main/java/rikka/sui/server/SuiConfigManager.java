@@ -27,6 +27,7 @@ import rikka.shizuku.server.ConfigManager;
 
 public class SuiConfigManager extends ConfigManager {
 
+    public static final int DEFAULT_UID = -1;
     public static SuiConfig load() {
         SuiConfig config = SuiDatabase.readConfig();
         if (config == null) {
@@ -62,9 +63,27 @@ public class SuiConfigManager extends ConfigManager {
     }
 
     @Nullable
-    public SuiConfig.PackageEntry find(int uid) {
+    public SuiConfig.PackageEntry findExplicit(int uid) {
         synchronized (this) {
             return findLocked(uid);
+        }
+    }
+
+    @Nullable
+    public SuiConfig.PackageEntry find(int uid) {
+        synchronized (this) {
+            SuiConfig.PackageEntry entry = findLocked(uid);
+            if (uid == DEFAULT_UID) {
+                return entry;
+            }
+            if (entry != null && entry.flags != 0) {
+                return entry;
+            }
+            SuiConfig.PackageEntry defaultEntry = findLocked(DEFAULT_UID);
+            if (defaultEntry == null || defaultEntry.flags == 0) {
+                return null;
+            }
+            return defaultEntry;
         }
     }
 
@@ -77,11 +96,20 @@ public class SuiConfigManager extends ConfigManager {
         synchronized (this) {
             SuiConfig.PackageEntry entry = findLocked(uid);
             if (entry == null) {
-                entry = new SuiConfig.PackageEntry(uid, mask & values);
+                int newValue = mask & values;
+                if (newValue == 0) {
+                    return;
+                }
+                entry = new SuiConfig.PackageEntry(uid, newValue);
                 config.packages.add(entry);
             } else {
                 int newValue = (entry.flags & ~mask) | (mask & values);
                 if (newValue == entry.flags) {
+                    return;
+                }
+                if (newValue == 0) {
+                    config.packages.remove(entry);
+                    SuiDatabase.removeUid(uid);
                     return;
                 }
                 entry.flags = newValue;
@@ -108,5 +136,24 @@ public class SuiConfigManager extends ConfigManager {
             return false;
         }
         return (entry.flags & SuiConfig.FLAG_HIDDEN) != 0;
+    }
+
+    public int getDefaultPermissionFlags() {
+        synchronized (this) {
+            SuiConfig.PackageEntry entry = findLocked(DEFAULT_UID);
+            if (entry == null) {
+                return 0;
+            }
+            return entry.flags & SuiConfig.MASK_PERMISSION;
+        }
+    }
+
+    public void setDefaultPermissionFlags(int flags) {
+        int value = flags & SuiConfig.MASK_PERMISSION;
+        if (value == 0) {
+            remove(DEFAULT_UID);
+        } else {
+            update(DEFAULT_UID, SuiConfig.MASK_PERMISSION, value);
+        }
     }
 }

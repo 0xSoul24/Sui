@@ -176,6 +176,10 @@ class ManagementFragment : AppFragment() {
         popupMenu.inflate(R.menu.overflow_popup_menu)
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.action_batch_unconfigured -> {
+                    showBatchOptionsMenu(anchorView)
+                    true
+                }
                 R.id.action_add_shortcut -> {
                     try {
                         rikka.sui.util.BridgeServiceClient.requestPinnedShortcut()
@@ -195,6 +199,66 @@ class ManagementFragment : AppFragment() {
             }
         }
         popupMenu.show()
+    }
+    private fun showBatchOptionsMenu(anchorView: View) {
+        val popupMenu = androidx.appcompat.widget.PopupMenu(requireContext(), anchorView)
+        popupMenu.inflate(R.menu.batch_options_menu)
+
+        val currentDefaultMode = viewModel.appList.value?.data?.firstOrNull()?.defaultFlags
+            ?.and(rikka.sui.server.SuiConfig.MASK_PERMISSION) ?: 0
+
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(androidx.appcompat.R.attr.colorPrimary, typedValue, true)
+        val highlightColor = typedValue.data
+
+        val menu = popupMenu.menu
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+
+            val isSelected = when (item.itemId) {
+                R.id.batch_allow -> currentDefaultMode == rikka.sui.server.SuiConfig.FLAG_ALLOWED
+                R.id.batch_deny -> currentDefaultMode == rikka.sui.server.SuiConfig.FLAG_DENIED
+                R.id.batch_hidden -> currentDefaultMode == rikka.sui.server.SuiConfig.FLAG_HIDDEN
+                R.id.batch_ask -> currentDefaultMode == 0
+                else -> false
+            }
+            if (isSelected) {
+                val spannableTitle = android.text.SpannableString(item.title)
+                spannableTitle.setSpan(
+                    android.text.style.ForegroundColorSpan(highlightColor),
+                    0, spannableTitle.length,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                spannableTitle.setSpan(
+                    android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                    0, spannableTitle.length,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+
+                item.title = spannableTitle
+            }
+        }
+        popupMenu.setOnMenuItemClickListener { item ->
+            val targetMode = when (item.itemId) {
+                R.id.batch_allow -> rikka.sui.server.SuiConfig.FLAG_ALLOWED
+                R.id.batch_deny -> rikka.sui.server.SuiConfig.FLAG_DENIED
+                R.id.batch_hidden -> rikka.sui.server.SuiConfig.FLAG_HIDDEN
+                R.id.batch_ask -> 0
+                else -> -1
+            }
+
+            if (targetMode != -1) {
+                performBatchUpdate(targetMode)
+            }
+            true
+        }
+        popupMenu.show()
+    }
+    private fun performBatchUpdate(targetMode: Int) {
+        binding.progress.isVisible = true
+        binding.list.isGone = true
+
+        viewModel.batchUpdate(targetMode, requireContext())
     }
     private fun resolveThemeColor(@androidx.annotation.AttrRes attrRes: Int): Int {
         val typedValue = android.util.TypedValue()

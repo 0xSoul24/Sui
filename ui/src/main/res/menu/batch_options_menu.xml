@@ -17,15 +17,18 @@
   ~
   ~ Copyright (c) 2025 Sui Contributors
   -->
+
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/action_batch_unconfigured"
-        android:title="@string/action_batch_unconfigured" />
+        android:id="@+id/batch_allow"
+        android:title="@string/permission_allowed" />
     <item
-        android:id="@+id/action_add_shortcut"
-        android:title="@string/action_add_shortcut" />
+        android:id="@+id/batch_deny"
+        android:title="@string/permission_denied" />
     <item
-        android:id="@+id/action_about"
-        android:title="@string/action_about" />
+        android:id="@+id/batch_hidden"
+        android:title="@string/permission_hidden" />
+    <item
+        android:id="@+id/batch_ask"
+        android:title="@string/permission_ask" />
 </menu>
-

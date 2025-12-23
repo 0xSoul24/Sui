@@ -68,7 +68,7 @@ class ManagementAdapter(context: Context) : BaseRecyclerViewAdapter<ClassCreator
                 HtmlCompat.fromHtml(String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_allowed), String.format(Locale.ENGLISH, "%06x", colorAccent and 0xffffff)), HtmlCompat.FROM_HTML_MODE_LEGACY),
                 HtmlCompat.fromHtml(String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_denied), String.format(Locale.ENGLISH, "%06x", colorError and 0xffffff)), HtmlCompat.FROM_HTML_MODE_LEGACY),
                 HtmlCompat.fromHtml(String.format("<font face=\"sans-serif-medium\" color=\"#%2\$s\">%1\$s</font>", context.getString(R.string.permission_hidden), String.format(Locale.ENGLISH, "%06x", colorForeground and 0xffffff)), HtmlCompat.FROM_HTML_MODE_LEGACY),
-                context.getString(R.string.permission_ask)
+                context.getString(R.string.permission_default)
             )
         ) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {

@@ -30,5 +30,6 @@ public class ServerConstants {
     public static final int BINDER_TRANSACTION_openApk = 10003;
     public static final int BINDER_TRANSACTION_SEND_SHORTCUT_BROADCAST = 10004;
     public static final int BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI = 10005;
+    public static final int BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED = 10006;
 
 }

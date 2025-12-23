@@ -173,11 +173,13 @@ afterEvaluate {
         task("flashAndReboot${variantCapped}", type: Exec) {
             dependsOn("flash${variantCapped}")
             commandLine android.adbExecutable, "shell", "reboot"
+            ignoreExitValue = true
         }
 
         task("flashWithKsudAndReboot${variantCapped}", type: Exec) {
             dependsOn("flashWithKsud${variantCapped}")
             commandLine android.adbExecutable, "shell", "reboot"
+            ignoreExitValue = true
         }
         variant.assembleProvider.get().finalizedBy("zip${variantCapped}")
     }

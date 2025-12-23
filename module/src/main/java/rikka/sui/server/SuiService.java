@@ -363,7 +363,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     }
 
     private int getFlagsForUidInternal(int uid, int mask) {
-        SuiConfig.PackageEntry entry = configManager.find(uid);
+        SuiConfig.PackageEntry entry = configManager.findExplicit(uid);
         if (entry != null) {
             return entry.flags & mask;
         }
@@ -373,20 +373,33 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     @Override
     public int getFlagsForUid(int uid, int mask) {
         enforceManagerPermission("getFlagsForUid");
-        return getFlagsForUidInternal(uid, mask);
+        SuiConfig.PackageEntry entry = configManager.find(uid);
+        if (entry != null) {
+            return entry.flags & mask;
+        }
+        return 0;
     }
 
     @Override
     public void updateFlagsForUid(int uid, int mask, int value) {
         enforceManagerPermission("updateFlagsForUid");
 
-        int oldValue = getFlagsForUidInternal(uid, mask);
-        boolean wasHidden = (oldValue & SuiConfig.FLAG_HIDDEN) != 0;
+        int oldEffectiveFlags = 0;
+        SuiConfig.PackageEntry oldEffectiveEntry = configManager.find(uid);
+        if (oldEffectiveEntry != null) {
+            oldEffectiveFlags = oldEffectiveEntry.flags & SuiConfig.MASK_PERMISSION;
+        }
+        boolean wasHidden = (oldEffectiveFlags & SuiConfig.FLAG_HIDDEN) != 0;
 
         configManager.update(uid, mask, value);
 
         if ((mask & SuiConfig.MASK_PERMISSION) != 0) {
-            boolean allowed = (value & SuiConfig.FLAG_ALLOWED) != 0;
+            int newEffectiveFlags = 0;
+            SuiConfig.PackageEntry newEffectiveEntry = configManager.find(uid);
+            if (newEffectiveEntry != null) {
+                newEffectiveFlags = newEffectiveEntry.flags & SuiConfig.MASK_PERMISSION;
+            }
+            boolean allowed = (newEffectiveFlags & SuiConfig.FLAG_ALLOWED) != 0;
             for (ClientRecord record : clientManager.findClients(uid)) {
                 record.allowed = allowed;
 
@@ -426,6 +439,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     private ParcelableListSlice<AppInfo> getApplications(int userId) {
         enforceManagerPermission("getApplications");
 
+        int defaultPermissionFlags = configManager.getDefaultPermissionFlags();
         List<Integer> users = new ArrayList<>();
         if (userId == -1) {
             users.addAll(UserManagerApis.getUserIdsNoThrow());
@@ -511,6 +525,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                 AppInfo item = new AppInfo();
                 item.packageInfo = pi;
                 item.flags = flags;
+                item.defaultFlags = defaultPermissionFlags;
                 list.add(item);
             }
         }
@@ -608,6 +623,23 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             } catch (Throwable e) {
                 LOGGER.w(e, "Failed to relay request pinned shortcut to SystemUI");
                 reply.writeException(new RuntimeException("Failed to relay request to SystemUI", e));
+            }
+            return true;
+        }
+        if (code == ServerConstants.BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED) {
+            data.enforceInterface(ShizukuApiConstants.BINDER_DESCRIPTOR);
+
+            int targetMode = data.readInt() & SuiConfig.MASK_PERMISSION;
+            try {
+                enforceManagerPermission("setDefaultPermissionFlags");
+                if (targetMode != 0 && (targetMode & (targetMode - 1)) != 0) {
+                    throw new IllegalArgumentException("Invalid targetMode: " + targetMode);
+                }
+                configManager.setDefaultPermissionFlags(targetMode);
+                reply.writeNoException();
+            } catch (Throwable e) {
+                LOGGER.w(e, "setDefaultPermissionFlags");
+                reply.writeException(new RuntimeException("Failed to set default permission flags", e));
             }
             return true;
         }

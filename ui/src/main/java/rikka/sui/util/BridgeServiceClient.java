@@ -36,7 +36,7 @@ public class BridgeServiceClient {
 
     private static final int BINDER_TRANSACTION_getApplications = 10001;
     private static final int BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI = 10005;
-
+    private static final int BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED = 10006;
     private static IBinder binder;
     private static IShizukuService service;
 
@@ -156,6 +156,26 @@ public class BridgeServiceClient {
         try {
             data.writeInterfaceToken("moe.shizuku.server.IShizukuService");
             service.asBinder().transact(BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI, data, reply, 0);
+            reply.readException();
+        } finally {
+            data.recycle();
+            reply.recycle();
+        }
+    }
+    public static void batchUpdateUnconfigured(int targetMode) throws RemoteException {
+        IShizukuService service = getService();
+        if (service == null) {
+            throw new RemoteException("Sui service is not available.");
+        }
+
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        try {
+            data.writeInterfaceToken(rikka.shizuku.ShizukuApiConstants.BINDER_DESCRIPTOR);
+            data.writeInt(targetMode);
+
+            service.asBinder().transact(BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED, data, reply, 0);
+
             reply.readException();
         } finally {
             data.recycle();

@@ -13,6 +13,7 @@
     <string name="permission_denied">拒绝</string>
     <string name="permission_hidden">隐藏</string>
     <string name="permission_ask">询问</string>
+    <string name="permission_default">默认</string>
     <string name="notification_channel_group_name">显示管理界面</string>
     <string name="notification_show_management_title">您已进入“开发者设置”</string>
     <string name="notification_show_management_text">点按以显示超级用户管理界面</string>
@@ -22,4 +23,5 @@
     <string name="action_about">关于</string>
     <string name="about_author">作者: %1$s</string>
     <string name="about_button_ok">确定</string>
+    <string name="action_batch_unconfigured">修改默认值</string>
 </resources>

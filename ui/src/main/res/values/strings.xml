@@ -13,6 +13,7 @@
     <string name="permission_denied">Denied</string>
     <string name="permission_hidden">Hidden</string>
     <string name="permission_ask">Ask</string>
+    <string name="permission_default">Default</string>
     <string name="notification_channel_group_name">Show management</string>
     <string name="notification_show_management_title">You have entered \"Developer options\"</string>
     <string name="notification_show_management_text">Tap to show superuser management</string>
@@ -22,4 +23,5 @@
     <string name="action_about">About</string>
     <string name="about_author">Author: %1$s</string>
     <string name="about_button_ok">OK</string>
+    <string name="action_batch_unconfigured">Batch process unconfigured</string>
 </resources>

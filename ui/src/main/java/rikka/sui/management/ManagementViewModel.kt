@@ -70,6 +70,25 @@ class ManagementViewModel : ViewModel() {
             displayList()
         }
     }
+    fun batchUpdate(targetMode: Int, context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (UI_DEBUG_MODE) {
+                fullList.forEach { it.defaultFlags = targetMode }
+                displayList()
+                return@launch
+            }
+
+            try {
+                BridgeServiceClient.batchUpdateUnconfigured(targetMode)
+            } catch (e: Throwable) {
+                android.util.Log.e("SuiViewModel", "update failed", e)
+                appList.postValue(Resource.error(e, null))
+                return@launch
+            }
+            reload(context)
+        }
+    }
+
     fun reload(context: Context) {
         appList.postValue(Resource.loading(null))
 

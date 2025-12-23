@@ -28,6 +28,7 @@ public class AppInfo implements Parcelable {
 
     public PackageInfo packageInfo;
     public int flags;
+    public int defaultFlags;
     public CharSequence label = null;
 
     public AppInfo() {
@@ -36,6 +37,7 @@ public class AppInfo implements Parcelable {
     protected AppInfo(Parcel in) {
         packageInfo = in.readParcelable(PackageInfo.class.getClassLoader());
         flags = in.readInt();
+        defaultFlags = in.readInt();
     }
 
     public static final Creator<AppInfo> CREATOR = new Creator<AppInfo>() {
@@ -59,5 +61,6 @@ public class AppInfo implements Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeParcelable(packageInfo, flags);
         dest.writeInt(this.flags);
+        dest.writeInt(defaultFlags);
     }
 }
