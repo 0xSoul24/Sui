@@ -21,9 +21,21 @@
     public static *** i(...);
     public static *** w(...);
     public static *** e(...);
+    public static *** wtf(...);
 }
 -assumenosideeffects class rikka.sui.util.Logger {
+    public *** v(...);
     public *** d(...);
+    public *** i(...);
+    public *** w(...);
+    public *** e(...);
+}
+-assumenosideeffects class rikka.shizuku.server.util.Logger {
+    public *** v(...);
+    public *** d(...);
+    public *** i(...);
+    public *** w(...);
+    public *** e(...);
 }
 
 -keepattributes SourceFile,LineNumberTable

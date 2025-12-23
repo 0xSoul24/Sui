@@ -31,12 +31,19 @@
 -keep interface rikka.sui.** { *; }
 
 -assumenosideeffects class android.util.Log {
-    public static *** d(...);
     public static *** v(...);
+    public static *** d(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+    public static *** wtf(...);
 }
 -assumenosideeffects class rikka.sui.util.Logger {
-    public static *** d(...);
     public static *** v(...);
+    public static *** d(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
 }
 
 -dontwarn androidx.**
