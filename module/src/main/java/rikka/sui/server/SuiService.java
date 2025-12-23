@@ -451,8 +451,9 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         Map<String, Boolean> hasComponentsCache = new ArrayMap<>();
 
         List<AppInfo> list = new ArrayList<>();
+        int installedBaseFlags = 0x00002000 /*MATCH_UNINSTALLED_PACKAGES*/ | PackageManager.GET_PERMISSIONS;
         for (int user : users) {
-            for (PackageInfo pi : PackageManagerApis.getInstalledPackagesNoThrow(0x00002000 /*MATCH_UNINSTALLED_PACKAGES*/, user)) {
+            for (PackageInfo pi : PackageManagerApis.getInstalledPackagesNoThrow(installedBaseFlags, user)) {
                 if (pi.applicationInfo == null
                         || Refine.<PackageInfoHidden>unsafeCast(pi).overlayTarget != null
                         || (pi.applicationInfo.flags & ApplicationInfo.FLAG_HAS_CODE) == 0)

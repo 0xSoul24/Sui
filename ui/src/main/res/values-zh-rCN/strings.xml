@@ -24,4 +24,5 @@
     <string name="about_author">作者: %1$s</string>
     <string name="about_button_ok">确定</string>
     <string name="action_batch_unconfigured">修改默认值</string>
+    <string name="action_filter_shizuku_apps">仅显示Shizuku应用</string>
 </resources>

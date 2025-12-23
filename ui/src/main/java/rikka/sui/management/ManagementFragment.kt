@@ -174,8 +174,14 @@ class ManagementFragment : AppFragment() {
     private fun showOverflowPopupMenu(anchorView: View) {
         val popupMenu = androidx.appcompat.widget.PopupMenu(requireContext(), anchorView)
         popupMenu.inflate(R.menu.overflow_popup_menu)
+        popupMenu.menu.findItem(R.id.action_filter_shizuku)?.isChecked = viewModel.showOnlyShizukuApps
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.action_filter_shizuku -> {
+                    menuItem.isChecked = !menuItem.isChecked
+                    viewModel.toggleShizukuFilter(menuItem.isChecked)
+                    true
+                }
                 R.id.action_batch_unconfigured -> {
                     showBatchOptionsMenu(anchorView)
                     true

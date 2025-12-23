@@ -19,6 +19,10 @@
   -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
+        android:id="@+id/action_filter_shizuku"
+        android:title="@string/action_filter_shizuku_apps"
+        android:checkable="true" />
+    <item
         android:id="@+id/action_batch_unconfigured"
         android:title="@string/action_batch_unconfigured" />
     <item
@@ -28,4 +32,3 @@
         android:id="@+id/action_about"
         android:title="@string/action_about" />
 </menu>
-

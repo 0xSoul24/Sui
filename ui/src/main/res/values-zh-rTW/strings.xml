@@ -23,5 +23,6 @@
     <string name="action_about">關於</string>
     <string name="about_author">作者: %1$s</string>
     <string name="about_button_ok">好</string>
-    <string name="action_batch_unconfigured">修改默认值</string>
+    <string name="action_batch_unconfigured">修改預設值</string>
+    <string name="action_filter_shizuku_apps">僅顯示Shizuku應用</string>
 </resources>

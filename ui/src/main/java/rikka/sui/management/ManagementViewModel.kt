@@ -37,20 +37,25 @@ class ManagementViewModel : ViewModel() {
 
     private val UI_DEBUG_MODE = false
     private val fullList = ArrayList<AppInfo>()
-
+    var showOnlyShizukuApps = false
     val appList = MutableLiveData<Resource<List<AppInfo>>>(null)
     private var currentQuery: String? = null
     private fun displayList() {
-        val listToShow = if (currentQuery.isNullOrBlank()) {
-            fullList
-        } else {
-            fullList.filter { appInfo ->
+        var tempSequence = fullList.asSequence()
+        if (showOnlyShizukuApps) {
+            tempSequence = tempSequence.filter { appInfo ->
+                val permissions = appInfo.packageInfo.requestedPermissions
+                permissions != null && permissions.contains("moe.shizuku.manager.permission.API_V23")
+            }
+        }
+        if (!currentQuery.isNullOrBlank()) {
+            tempSequence = tempSequence.filter { appInfo ->
                 val appName = appInfo.label ?: ""
                 val packageName = appInfo.packageInfo.packageName ?: ""
                 appName.contains(currentQuery!!, ignoreCase = true) || packageName.contains(currentQuery!!, ignoreCase = true)
             }
         }
-        val sortedList = listToShow.sortedWith(AppInfoComparator())
+        val sortedList = tempSequence.sortedWith(AppInfoComparator()).toList()
         appList.postValue(Resource.success(sortedList))
     }
 
@@ -68,6 +73,14 @@ class ManagementViewModel : ViewModel() {
         currentQuery = query
         viewModelScope.launch(Dispatchers.IO) {
             displayList()
+        }
+    }
+    fun toggleShizukuFilter(enable: Boolean) {
+        if (showOnlyShizukuApps != enable) {
+            showOnlyShizukuApps = enable
+            viewModelScope.launch(Dispatchers.IO) {
+                displayList()
+            }
         }
     }
     fun batchUpdate(targetMode: Int, context: Context) {
@@ -116,7 +129,7 @@ class ManagementViewModel : ViewModel() {
             } catch (e: CancellationException) {
 
             } catch (e: Throwable) {
-                android.util.Log.e("SuiViewModelFinal", "THE SMOKING GUN! The final error is:", e)
+                android.util.Log.e("SuiViewModel", "THE SMOKING GUN! The final error is:", e)
                 appList.postValue(Resource.error(e, null))
             }
         }
