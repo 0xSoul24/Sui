@@ -83,7 +83,8 @@ public class SuiConfigManager extends ConfigManager {
             if (defaultEntry == null || defaultEntry.flags == 0) {
                 return null;
             }
-            return defaultEntry;
+            LOGGER.d("Applying DEFAULT flags for uid " + uid + ": " + defaultEntry.flags);
+            return new SuiConfig.PackageEntry(uid, defaultEntry.flags);
         }
     }
 
@@ -93,6 +94,10 @@ public class SuiConfigManager extends ConfigManager {
     }
 
     public void update(int uid, int mask, int values) {
+        LOGGER.i("update uid=" + uid + " mask=" + mask + " val=" + values);
+        boolean needRemove = false;
+        boolean needUpdate = false;
+        int finalFlags = 0;
         synchronized (this) {
             SuiConfig.PackageEntry entry = findLocked(uid);
             if (entry == null) {
@@ -102,6 +107,8 @@ public class SuiConfigManager extends ConfigManager {
                 }
                 entry = new SuiConfig.PackageEntry(uid, newValue);
                 config.packages.add(entry);
+                needUpdate = true;
+                finalFlags = newValue;
             } else {
                 int newValue = (entry.flags & ~mask) | (mask & values);
                 if (newValue == entry.flags) {
@@ -109,23 +116,32 @@ public class SuiConfigManager extends ConfigManager {
                 }
                 if (newValue == 0) {
                     config.packages.remove(entry);
-                    SuiDatabase.removeUid(uid);
-                    return;
+                    needRemove = true;
+                } else {
+                    entry.flags = newValue;
+                    needUpdate = true;
+                    finalFlags = newValue;
                 }
-                entry.flags = newValue;
             }
-            SuiDatabase.updateUid(uid, entry.flags);
+        }
+        if (needRemove) {
+            SuiDatabase.removeUid(uid);
+        } else if (needUpdate) {
+            SuiDatabase.updateUid(uid, finalFlags);
         }
     }
 
     @Override
     public void remove(int uid) {
+        boolean needRemove = false;
         synchronized (this) {
             SuiConfig.PackageEntry entry = findLocked(uid);
-            if (entry == null) {
-                return;
+            if (entry != null) {
+                config.packages.remove(entry);
+                needRemove = true;
             }
-            config.packages.remove(entry);
+        }
+        if (needRemove) {
             SuiDatabase.removeUid(uid);
         }
     }
@@ -149,6 +165,7 @@ public class SuiConfigManager extends ConfigManager {
     }
 
     public void setDefaultPermissionFlags(int flags) {
+        LOGGER.i("Setting default permission flags: " + flags);
         int value = flags & SuiConfig.MASK_PERMISSION;
         if (value == 0) {
             remove(DEFAULT_UID);
