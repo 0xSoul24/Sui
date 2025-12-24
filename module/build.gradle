@@ -108,7 +108,7 @@ afterEvaluate {
                         versionCode: moduleVersionCode.toString(),
                         author     : moduleAuthor,
                         description: moduleDescription,
-                        updateJson : "https://rikkaapps.github.io/release/sui_zygisk.json",
+                        updateJson : "https://xiaotong6666.github.io/Sui/sui_zygisk.json",
                 ])
                 filter(FixCrLfFilter.class,
                         eol: FixCrLfFilter.CrLf.newInstance("lf"))
