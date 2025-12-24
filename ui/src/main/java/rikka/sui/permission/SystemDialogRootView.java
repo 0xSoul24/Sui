@@ -98,6 +98,7 @@ public class SystemDialogRootView extends FrameLayout {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
 

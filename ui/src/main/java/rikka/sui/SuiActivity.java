@@ -42,6 +42,7 @@ public class SuiActivity extends AppActivity {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this);
@@ -56,13 +57,13 @@ public class SuiActivity extends AppActivity {
         }
         invalidateOptionsMenu();
 
-        if (Build.VERSION.SDK_INT >= 33) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU/*API33/A13*/) {
             ActivityManager.TaskDescription taskDescription = new ActivityManager.TaskDescription.Builder()
                     .setLabel("Sui")
                     .setPrimaryColor(resolveThemeColor(androidx.appcompat.R.attr.colorPrimary))
                     .build();
             setTaskDescription(taskDescription);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P/*API28/A9*/) {
             setTaskDescription(new ActivityManager.TaskDescription("Sui", 0, resolveThemeColor(androidx.appcompat.R.attr.colorPrimary)));
         } else {
             setTaskDescription(new ActivityManager.TaskDescription("Sui"));

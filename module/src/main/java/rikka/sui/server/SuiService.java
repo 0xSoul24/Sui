@@ -78,6 +78,7 @@ import rikka.sui.util.OsUtils;
 import rikka.sui.util.UserHandleCompat;
 
 @OptIn(markerClass = androidx.core.os.BuildCompat.PrereleaseSdkCheck.class)
+@SuppressWarnings("deprecation")
 public class SuiService extends Service<SuiUserServiceManager, SuiClientManager, SuiConfigManager> {
 
     private static SuiService instance;
@@ -165,15 +166,15 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                     LOGGER.w("system restarted...");
                 }
 
-            @Override
-            public void onResponseFromBridgeService(boolean response) {
-                if (response) {
-                    LOGGER.i("send service to bridge");
-                } else {
-                    LOGGER.w("no response from bridge");
+                @Override
+                public void onResponseFromBridgeService(boolean response) {
+                    if (response) {
+                        LOGGER.i("send service to bridge");
+                    } else {
+                        LOGGER.w("no response from bridge");
+                    }
                 }
-            }
-           });
+            });
         });
     }
 

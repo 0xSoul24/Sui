@@ -51,7 +51,7 @@ class ManagementViewModel : ViewModel() {
         if (!currentQuery.isNullOrBlank()) {
             tempSequence = tempSequence.filter { appInfo ->
                 val appName = appInfo.label ?: ""
-                val packageName = appInfo.packageInfo.packageName ?: ""
+                val packageName = appInfo.packageInfo.packageName
                 appName.contains(currentQuery!!, ignoreCase = true) || packageName.contains(currentQuery!!, ignoreCase = true)
             }
         }

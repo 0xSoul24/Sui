@@ -19,9 +19,11 @@
 
 package rikka.sui.server.bridge;
 
+import android.os.Build;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -39,6 +41,10 @@ public class BridgeServiceClient {
     private static final int ACTION_SEND_BINDER = 1;
     private static final int ACTION_GET_BINDER = ACTION_SEND_BINDER + 1;
     private static final int ACTION_NOTIFY_FINISHED = ACTION_SEND_BINDER + 2;
+
+    private static final int MAX_ZYGOTE_RESTART = 1;
+    private static int remainingRestart = MAX_ZYGOTE_RESTART;
+    private static boolean systemServerRequested = false;
 
     private static class DeathRecipient implements IBinder.DeathRecipient {
 
@@ -147,6 +153,32 @@ public class BridgeServiceClient {
 
         if (listener != null) {
             listener.onResponseFromBridgeService(res);
+        }
+
+        if (res) {
+            systemServerRequested = true;
+        } else {
+            maybeRestartZygote();
+        }
+    }
+
+    private static void maybeRestartZygote() {
+        if (systemServerRequested) {
+            return;
+        }
+        if (remainingRestart <= 0) {
+            LOGGER.w("zygote restart quota exhausted, skip restart");
+            return;
+        }
+        remainingRestart--;
+        LOGGER.w("System server injection failed, try restarting zygote (remaining=%d)", remainingRestart);
+        try {
+            boolean has64 = Build.SUPPORTED_64_BIT_ABIS != null && Build.SUPPORTED_64_BIT_ABIS.length > 0;
+            boolean has32 = Build.SUPPORTED_32_BIT_ABIS != null && Build.SUPPORTED_32_BIT_ABIS.length > 0;
+            String target = (has64 && has32) ? "zygote_secondary" : "zygote";
+            SystemProperties.set("ctl.restart", target);
+        } catch (Throwable e) {
+            LOGGER.w(e, "Failed to restart zygote");
         }
     }
 

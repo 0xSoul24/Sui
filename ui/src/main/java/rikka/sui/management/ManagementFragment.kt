@@ -21,15 +21,20 @@ package rikka.sui.management
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.MenuInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.MenuHost
+import androidx.core.view.MenuProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import rikka.lifecycle.Resource
 import rikka.lifecycle.Status
@@ -55,7 +60,48 @@ class ManagementFragment : AppFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setHasOptionsMenu(true)
+        val menuHost: MenuHost = requireActivity()
+        menuHost.addMenuProvider(object : MenuProvider {
+            override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+                menuInflater.inflate(R.menu.management_menu, menu)
+
+                val searchItem = menu.findItem(R.id.action_search)
+                val searchView = searchItem.actionView as SearchView
+
+                var isSearchViewInitialized = false
+                searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                    override fun onQueryTextSubmit(query: String?): Boolean {
+                        return false
+                    }
+                    override fun onQueryTextChange(newText: String?): Boolean {
+                        if (!isSearchViewInitialized && newText.isNullOrEmpty()) {
+                            isSearchViewInitialized = true
+                            return true
+                        }
+                        viewModel.filter(newText)
+                        return true
+                    }
+                })
+                val overflowItem = menu.findItem(R.id.action_overflow)
+                requireActivity().findViewById<View>(R.id.toolbar)?.post {
+                    val overflowButtonView = requireActivity().findViewById<View>(R.id.action_overflow)
+                    if (overflowButtonView != null) {
+                        overflowButtonView.setOnClickListener { anchorView ->
+                            showOverflowPopupMenu(anchorView)
+                        }
+                    } else {
+                        overflowItem.setOnMenuItemClickListener {
+                            showOverflowPopupMenu(requireActivity().findViewById(R.id.toolbar))
+                            true
+                        }
+                    }
+                }
+            }
+
+            override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+                return false
+            }
+        }, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
         val context = view.context
         view.post {
@@ -132,43 +178,6 @@ class ManagementFragment : AppFragment() {
         }
         if (savedInstanceState == null) {
             viewModel.reload(requireContext())
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: android.view.Menu, inflater: MenuInflater) {
-        super.onCreateOptionsMenu(menu, inflater)
-        inflater.inflate(R.menu.management_menu, menu)
-
-        val searchItem = menu.findItem(R.id.action_search)
-        val searchView = searchItem.actionView as SearchView
-
-        var isSearchViewInitialized = false
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                return false
-            }
-            override fun onQueryTextChange(newText: String?): Boolean {
-                if (!isSearchViewInitialized && newText.isNullOrEmpty()) {
-                    isSearchViewInitialized = true
-                    return true
-                }
-                viewModel.filter(newText)
-                return true
-            }
-        })
-        val overflowItem = menu.findItem(R.id.action_overflow)
-        requireActivity().findViewById<View>(R.id.toolbar)?.post {
-            val overflowButtonView = requireActivity().findViewById<View>(R.id.action_overflow)
-            if (overflowButtonView != null) {
-                overflowButtonView.setOnClickListener { anchorView ->
-                    showOverflowPopupMenu(anchorView)
-                }
-            } else {
-                overflowItem.setOnMenuItemClickListener {
-                    showOverflowPopupMenu(requireActivity().findViewById(R.id.toolbar))
-                    true
-                }
-            }
         }
     }
     private fun showOverflowPopupMenu(anchorView: View) {

@@ -42,15 +42,18 @@ public class BridgeService {
     private static final int ACTION_GET_BINDER = ACTION_SEND_BINDER + 1;
     private static final int ACTION_NOTIFY_FINISHED = ACTION_SEND_BINDER + 2;
 
+    private static final int RETRY_MAX = 3;
+    private static final long RETRY_DELAY_MS = 1000;
     private static final IBinder.DeathRecipient DEATH_RECIPIENT = () -> {
         serviceBinder = null;
         service = null;
+        serviceStarted = false;
         LOGGER.i("service is dead");
     };
 
-    private static IBinder serviceBinder;
+    private static volatile IBinder serviceBinder;
     private static IShizukuService service;
-    private static boolean serviceStarted;
+    private static volatile boolean serviceStarted;
 
     public static IShizukuService get() {
         return service;
@@ -112,6 +115,15 @@ public class BridgeService {
             case ACTION_GET_BINDER: {
                 if (Bridge.isHidden(Binder.getCallingUid())) {
                     return false;
+                }
+                if (serviceBinder == null) {
+                    for (int i = 0; i < RETRY_MAX && serviceBinder == null; i++) {
+                        try {
+                            LOGGER.w("binder missing, wait %d ms (try %d/%d)", RETRY_DELAY_MS, i + 1, RETRY_MAX);
+                            Thread.sleep(RETRY_DELAY_MS);
+                        } catch (InterruptedException ignored) {
+                        }
+                    }
                 }
 
                 if (reply != null) {

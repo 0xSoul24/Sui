@@ -25,7 +25,7 @@ import android.content.res.Resources;
 import rikka.sui.permission.ConfirmationDialog;
 
 public class SuiRequestPermissionDialog extends ConfirmationDialog {
-
+    @SuppressWarnings("this-escape")
     public SuiRequestPermissionDialog(
             Application application, Resources resources,
             int requestUid, int requestPid, String requestPackageName, int requestCode) {

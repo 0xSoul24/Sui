@@ -26,6 +26,7 @@ import android.os.ServiceManager;
 
 import androidx.annotation.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 
 import moe.shizuku.server.IShizukuService;
@@ -37,6 +38,8 @@ public class BridgeServiceClient {
     private static final int BINDER_TRANSACTION_getApplications = 10001;
     private static final int BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI = 10005;
     private static final int BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED = 10006;
+    private static final int RETRY_MAX = 5;
+    private static final long RETRY_DELAY_MS = 1000;
     private static IBinder binder;
     private static IShizukuService service;
 
@@ -46,8 +49,12 @@ public class BridgeServiceClient {
     private static final int BRIDGE_ACTION_GET_BINDER = 2;
 
     private static final IBinder.DeathRecipient DEATH_RECIPIENT = () -> {
-        binder = null;
-        service = null;
+        final String TAG = "SuiBridgeDebug";
+        android.util.Log.w(TAG, "Bridge binder died. Resetting connection.");
+        synchronized (BridgeServiceClient.class) {
+            binder = null;
+            service = null;
+        }
     };
 
     private static IBinder requestBinderFromBridge() {
@@ -55,72 +62,87 @@ public class BridgeServiceClient {
 
         android.util.Log.d(TAG, "Attempting to request binder from bridge...");
 
-        IBinder binder = ServiceManager.getService(BRIDGE_SERVICE_NAME);
-        if (binder == null) {
-            android.util.Log.e(TAG, "CRITICAL FAILURE: ServiceManager.getService(\"activity\") returned null!");
-            return null;
-        }
-        android.util.Log.d(TAG, "'activity' service binder obtained. Preparing custom transact...");
+        for (int i = 0; i < RETRY_MAX; i++) {
+            IBinder activityBinder = ServiceManager.getService(BRIDGE_SERVICE_NAME);
 
-        Parcel data = Parcel.obtain();
-        Parcel reply = Parcel.obtain();
-        try {
-            data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
-            data.writeInt(BRIDGE_ACTION_GET_BINDER);
-
-            android.util.Log.d(TAG, "Executing binder.transact with custom code...");
-            binder.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
-            android.util.Log.d(TAG, "Transact call has returned. Reading reply...");
-
-            reply.readException();
-            android.util.Log.d(TAG, "readException() completed without throwing an exception.");
-
-            IBinder received = reply.readStrongBinder();
-            if (received != null) {
-                android.util.Log.i(TAG, "SUCCESS! Received a non-null binder from the bridge.");
-                return received;
+            if (activityBinder == null) {
+                android.util.Log.e(TAG, "CRITICAL FAILURE: ServiceManager.getService(\"activity\") returned null! Retry count: " + (i + 1));
             } else {
-                android.util.Log.w(TAG, "FAILURE: Transact was successful, but the returned binder is NULL. The bridge likely rejected the request.");
+                android.util.Log.d(TAG, "'activity' service binder obtained. Preparing custom transact...");
+
+                Parcel data = Parcel.obtain();
+                Parcel reply = Parcel.obtain();
+                try {
+                    data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
+                    data.writeInt(BRIDGE_ACTION_GET_BINDER);
+
+                    android.util.Log.d(TAG, "Executing binder.transact with custom code...");
+                    activityBinder.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
+                    android.util.Log.d(TAG, "Transact call has returned. Reading reply...");
+
+                    reply.readException();
+                    android.util.Log.d(TAG, "readException() completed without throwing an exception.");
+
+                    IBinder received = reply.readStrongBinder();
+                    if (received != null) {
+                        android.util.Log.i(TAG, "SUCCESS! Received a non-null binder from the bridge.");
+                        return received;
+                    } else {
+                        android.util.Log.w(TAG, "FAILURE: Transact was successful, but the returned binder is NULL. The bridge likely rejected the request (or not ready). Retry count: " + (i + 1));
+                    }
+                } catch (Throwable e) {
+                    android.util.Log.e(TAG, "FATAL FAILURE: An exception was thrown during the transact/reply process.", e);
+                } finally {
+                    data.recycle();
+                    reply.recycle();
+                }
             }
-        } catch (Throwable e) {
-            android.util.Log.e(TAG, "FATAL FAILURE: An exception was thrown during the transact/reply process.", e);
-        } finally {
-            data.recycle();
-            reply.recycle();
+
+            if (i < RETRY_MAX - 1) {
+                try {
+                    Thread.sleep(RETRY_DELAY_MS);
+                } catch (InterruptedException ignored) {}
+            }
         }
-        android.util.Log.e(TAG, "requestBinderFromBridge is returning NULL.");
+
+        android.util.Log.e(TAG, "requestBinderFromBridge is returning NULL after all retries.");
         return null;
     }
 
-    protected static void setBinder(@Nullable IBinder binder) {
-        if (BridgeServiceClient.binder == binder) return;
+    protected static synchronized void setBinder(@Nullable IBinder newBinder) {
+        if (binder == newBinder) return;
 
-        if (BridgeServiceClient.binder != null) {
-            BridgeServiceClient.binder.unlinkToDeath(DEATH_RECIPIENT, 0);
+        if (binder != null) {
+            try {
+                binder.unlinkToDeath(DEATH_RECIPIENT, 0);
+            } catch (Throwable ignored) {}
         }
 
-        if (binder == null) {
-            BridgeServiceClient.binder = null;
-            BridgeServiceClient.service = null;
-        } else {
-            BridgeServiceClient.binder = binder;
-            BridgeServiceClient.service = IShizukuService.Stub.asInterface(binder);
-
+        binder = newBinder;
+        if (newBinder != null) {
+            service = IShizukuService.Stub.asInterface(newBinder);
             try {
-                BridgeServiceClient.binder.linkToDeath(DEATH_RECIPIENT, 0);
-            } catch (Throwable ignored) {
-            }
+                binder.linkToDeath(DEATH_RECIPIENT, 0);
+            } catch (Throwable ignored) {}
+        } else {
+            service = null;
         }
     }
 
-    public static IShizukuService getService() {
-        if (service == null) {
+    public static synchronized IShizukuService getService() {
+        if (service == null || binder == null || !binder.isBinderAlive()) {
             setBinder(requestBinderFromBridge());
         }
         return service;
     }
-
+    @SuppressWarnings("unchecked")
     public static List<AppInfo> getApplications(int userId) {
+        IShizukuService s = getService();
+        if (s == null) {
+            android.util.Log.e("SuiBridgeDebug", "getApplications: Service is null! Returning empty list.");
+            return Collections.emptyList();
+        }
+
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         List<AppInfo> result;
@@ -128,7 +150,7 @@ public class BridgeServiceClient {
             data.writeInterfaceToken("moe.shizuku.server.IShizukuService");
             data.writeInt(userId);
             try {
-                getService().asBinder().transact(BINDER_TRANSACTION_getApplications, data, reply, 0);
+                s.asBinder().transact(BINDER_TRANSACTION_getApplications, data, reply, 0);
             } catch (Throwable e) {
                 throw new RuntimeException(e);
             }
@@ -147,24 +169,25 @@ public class BridgeServiceClient {
     }
 
     public static void requestPinnedShortcut() throws RemoteException {
-        IShizukuService service = getService();
-        if (service == null) {
+        IShizukuService s = getService();
+        if (s == null) {
             throw new RemoteException("Sui service is not available.");
         }
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
             data.writeInterfaceToken("moe.shizuku.server.IShizukuService");
-            service.asBinder().transact(BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI, data, reply, 0);
+            s.asBinder().transact(BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI, data, reply, 0);
             reply.readException();
         } finally {
             data.recycle();
             reply.recycle();
         }
     }
+
     public static void batchUpdateUnconfigured(int targetMode) throws RemoteException {
-        IShizukuService service = getService();
-        if (service == null) {
+        IShizukuService s = getService();
+        if (s == null) {
             throw new RemoteException("Sui service is not available.");
         }
 
@@ -174,7 +197,7 @@ public class BridgeServiceClient {
             data.writeInterfaceToken(rikka.shizuku.ShizukuApiConstants.BINDER_DESCRIPTOR);
             data.writeInt(targetMode);
 
-            service.asBinder().transact(BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED, data, reply, 0);
+            s.asBinder().transact(BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED, data, reply, 0);
 
             reply.readException();
         } finally {
