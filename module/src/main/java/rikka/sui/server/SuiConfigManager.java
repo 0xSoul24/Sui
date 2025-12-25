@@ -31,9 +31,10 @@ public class SuiConfigManager extends ConfigManager {
     public static SuiConfig load() {
         SuiConfig config = SuiDatabase.readConfig();
         if (config == null) {
-            LOGGER.i("failed to read database, starting empty");
+            LOGGER.e("SuiConfigManager: failed to read database, starting empty");
             return new SuiConfig();
         }
+        LOGGER.e("SuiConfigManager: Loaded " + config.packages.size() + " packages from database.");
         return config;
     }
 
@@ -72,18 +73,22 @@ public class SuiConfigManager extends ConfigManager {
     @Nullable
     public SuiConfig.PackageEntry find(int uid) {
         synchronized (this) {
+            if (uid == 0 || uid == 1000) {
+                return new SuiConfig.PackageEntry(uid, SuiConfig.FLAG_ALLOWED);
+            }
             SuiConfig.PackageEntry entry = findLocked(uid);
             if (uid == DEFAULT_UID) {
                 return entry;
             }
             if (entry != null && entry.flags != 0) {
+                LOGGER.i("SuiConfigManager: Found explicit flags for uid " + uid + ": " + entry.flags);
                 return entry;
             }
             SuiConfig.PackageEntry defaultEntry = findLocked(DEFAULT_UID);
             if (defaultEntry == null || defaultEntry.flags == 0) {
                 return null;
             }
-            LOGGER.d("Applying DEFAULT flags for uid " + uid + ": " + defaultEntry.flags);
+            LOGGER.e("SuiConfigManager: Using DEFAULT flags for uid " + uid + ". Flags: " + defaultEntry.flags);
             return new SuiConfig.PackageEntry(uid, defaultEntry.flags);
         }
     }
@@ -94,10 +99,11 @@ public class SuiConfigManager extends ConfigManager {
     }
 
     public void update(int uid, int mask, int values) {
-        LOGGER.i("update uid=" + uid + " mask=" + mask + " val=" + values);
+        LOGGER.e("SuiConfigManager: update uid=" + uid + " mask=" + mask + " val=" + values);
         boolean needRemove = false;
         boolean needUpdate = false;
         int finalFlags = 0;
+
         synchronized (this) {
             SuiConfig.PackageEntry entry = findLocked(uid);
             if (entry == null) {
@@ -109,6 +115,7 @@ public class SuiConfigManager extends ConfigManager {
                 config.packages.add(entry);
                 needUpdate = true;
                 finalFlags = newValue;
+                LOGGER.e("SuiConfigManager: Added new entry for uid " + uid);
             } else {
                 int newValue = (entry.flags & ~mask) | (mask & values);
                 if (newValue == entry.flags) {
@@ -117,10 +124,12 @@ public class SuiConfigManager extends ConfigManager {
                 if (newValue == 0) {
                     config.packages.remove(entry);
                     needRemove = true;
+                    LOGGER.e("SuiConfigManager: Removed entry for uid " + uid);
                 } else {
                     entry.flags = newValue;
                     needUpdate = true;
                     finalFlags = newValue;
+                    LOGGER.e("SuiConfigManager: Updated entry for uid " + uid);
                 }
             }
         }
@@ -165,7 +174,7 @@ public class SuiConfigManager extends ConfigManager {
     }
 
     public void setDefaultPermissionFlags(int flags) {
-        LOGGER.i("Setting default permission flags: " + flags);
+        LOGGER.e("SuiConfigManager: Setting default permission flags: " + flags);
         int value = flags & SuiConfig.MASK_PERMISSION;
         if (value == 0) {
             remove(DEFAULT_UID);

@@ -155,7 +155,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         settingsUid = waitForPackage(SETTINGS_APPLICATION_ID, true);
 
         int gmsUid = waitForPackage("com.google.android.gms", false);
-        if (gmsUid != 0) {
+        if (gmsUid > 0) {
             configManager.update(gmsUid, SuiConfig.MASK_PERMISSION, SuiConfig.FLAG_HIDDEN);
         }
 
@@ -373,7 +373,10 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
 
     @Override
     public int getFlagsForUid(int uid, int mask) {
-        enforceManagerPermission("getFlagsForUid");
+        int callingUid = Binder.getCallingUid();
+        if (callingUid != uid && callingUid != systemUiUid && callingUid != settingsUid && callingUid != 1000) {
+            return 0;
+        }
         SuiConfig.PackageEntry entry = configManager.find(uid);
         if (entry != null) {
             return entry.flags & mask;
