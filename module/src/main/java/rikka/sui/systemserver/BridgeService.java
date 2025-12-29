@@ -69,10 +69,14 @@ public class BridgeService {
             return;
         }
 
-        if (serviceBinder == null) {
-            PackageReceiver.register();
-        } else {
-            serviceBinder.unlinkToDeath(DEATH_RECIPIENT, 0);
+        try {
+            if (serviceBinder == null) {
+                PackageReceiver.register();
+            } else {
+                serviceBinder.unlinkToDeath(DEATH_RECIPIENT, 0);
+            }
+        } catch (Throwable e) {
+            LOGGER.w(e, "Error during receiver registration or unlink");
         }
 
         serviceBinder = binder;

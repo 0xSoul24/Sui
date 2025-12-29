@@ -41,6 +41,11 @@ public class Starter {
     }
 
     public static void main(String[] args) {
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            LOGGER.e(e, "Uncaught exception on thread %s", t.getName());
+            System.exit(1);
+        });
+
         String filesPath = null;
 
         for (String arg : args) {

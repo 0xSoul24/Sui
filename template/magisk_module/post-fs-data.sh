@@ -83,4 +83,19 @@ ln -s "$MODDIR/bin/sui" "$MODDIR/bin/uninstall"
 
 # Run Sui server
 chmod 700 "$MODDIR"/bin/sui
-exec "$MODDIR"/bin/sui "$MODDIR" "$adb_root_exit"
+
+# define print_log
+print_log() {
+    echo "[$(date)] $1" >> "$MODDIR/sui.log"
+    log -p i -t "SuiDaemon" "$1"
+}
+
+
+print_log "Starting Sui native daemon..."
+
+# strat the sui daemon
+nohup "$MODDIR"/bin/sui "$MODDIR" "$adb_root_exit" >> "$MODDIR/sui.log" 2>&1 &
+
+print_log "Sui daemon launched with PID $!"
+
+exit 0

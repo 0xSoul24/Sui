@@ -44,6 +44,10 @@ public class SuiActivity extends AppActivity {
     @Override
     @SuppressWarnings("deprecation")
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            savedInstanceState.remove("android:support:fragments");
+            savedInstanceState.remove("android:fragments");
+        }
         super.onCreate(savedInstanceState);
         com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this);
         setContentView(R.layout.main);

@@ -115,6 +115,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
 
     private final Object managerBinderLock = new Object();
     private final Logger flog = new Logger("Sui", "/cache/sui.log");
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private int waitForPackage(String packageName, boolean forever) {
         int uid;
@@ -140,10 +141,56 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         return uid;
     }
 
+    /*private void dumpSuiProcess() {
+        try {
+            java.lang.Process p = new java.lang.ProcessBuilder("ps", "-ef").start();
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
+            String line;
+            boolean found = false;
+            LOGGER.i("DEBUG_PS START");
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("sui")) {
+                    LOGGER.e("DEBUG_PS: " + line);
+                    found = true;
+                }
+            }
+            if (!found) {
+                LOGGER.e("DEBUG_PS: No 'sui' process found in ps output!");
+            }
+            LOGGER.i("DEBUG_PS END");
+            p.waitFor();
+        } catch (Throwable e) {
+            LOGGER.e(e, "DEBUG_PS: Failed to execute ps command");
+        }
+    }*/
+    private final Runnable registerTask = new Runnable() {
+        @Override
+        public void run() {
+            BridgeServiceClient.send(new BridgeServiceClient.Listener() {
+                @Override
+                public void onSystemServerRestarted() {
+                    LOGGER.w("system restarted, re-registering...");
+                    mainHandler.post(registerTask);
+                }
+
+                @Override
+                public void onResponseFromBridgeService(boolean response) {
+                    if (response) {
+                        LOGGER.i("SUCCESS: Service binder sent to bridge.");
+                    } else {
+                        LOGGER.w("FAILURE: No response from bridge. Retrying in 1s...");
+                        // dumpSuiProcess();
+                        mainHandler.postDelayed(registerTask, 1000);
+                    }
+                }
+            });
+        }
+    };
+
     public SuiService() {
         super();
 
-        HandlerUtil.setMainHandler(new Handler(Looper.getMainLooper()));
+        HandlerUtil.setMainHandler(mainHandler);
 
         SuiService.instance = this;
 
@@ -159,23 +206,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             configManager.update(gmsUid, SuiConfig.MASK_PERMISSION, SuiConfig.FLAG_HIDDEN);
         }
 
-        new Handler(Looper.getMainLooper()).post(() -> {
-            BridgeServiceClient.send(new BridgeServiceClient.Listener() {
-                @Override
-                public void onSystemServerRestarted() {
-                    LOGGER.w("system restarted...");
-                }
-
-                @Override
-                public void onResponseFromBridgeService(boolean response) {
-                    if (response) {
-                        LOGGER.i("send service to bridge");
-                    } else {
-                        LOGGER.w("no response from bridge");
-                    }
-                }
-            });
-        });
+        mainHandler.postDelayed(registerTask, 2000);
     }
 
     @Override
@@ -501,10 +532,19 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                             if (pi2 == null) {
                                 // Exceed binder data transfer limit
                                 pi2 = pi;
-                                pi2.activities = PackageManagerApis.getPackageInfoNoThrow(pi.packageName, baseFlags | PackageManager.GET_ACTIVITIES, user).activities;
-                                pi2.receivers = PackageManagerApis.getPackageInfoNoThrow(pi.packageName, baseFlags | PackageManager.GET_RECEIVERS, user).receivers;
-                                pi2.services = PackageManagerApis.getPackageInfoNoThrow(pi.packageName, baseFlags | PackageManager.GET_SERVICES, user).services;
-                                pi2.providers = PackageManagerApis.getPackageInfoNoThrow(pi.packageName, baseFlags | PackageManager.GET_PROVIDERS, user).providers;
+                                PackageInfo tmp;
+
+                                tmp = PackageManagerApis.getPackageInfoNoThrow(pi.packageName, baseFlags | PackageManager.GET_ACTIVITIES, user);
+                                pi2.activities = (tmp != null) ? tmp.activities : null;
+
+                                tmp = PackageManagerApis.getPackageInfoNoThrow(pi.packageName, baseFlags | PackageManager.GET_RECEIVERS, user);
+                                pi2.receivers = (tmp != null) ? tmp.receivers : null;
+
+                                tmp = PackageManagerApis.getPackageInfoNoThrow(pi.packageName, baseFlags | PackageManager.GET_SERVICES, user);
+                                pi2.services = (tmp != null) ? tmp.services : null;
+
+                                tmp = PackageManagerApis.getPackageInfoNoThrow(pi.packageName, baseFlags | PackageManager.GET_PROVIDERS, user);
+                                pi2.providers = (tmp != null) ? tmp.providers : null;
                             }
                             return pi2.activities != null && pi2.activities.length > 0
                                     || pi2.receivers != null && pi2.receivers.length > 0

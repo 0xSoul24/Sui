@@ -23,7 +23,9 @@
 #include <unistd.h>
 #include <sched.h>
 #include <app_process.h>
+#include <misc.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 /*
  * argv[1]: path of the module, such as /data/adb/modules/zygisk-sui
@@ -34,6 +36,19 @@ static int sui_main(int argc, char **argv) {
     if (daemon(false, false) != 0) {
         PLOGE("daemon");
         return EXIT_FAILURE;
+    }
+
+    {
+        int fd = open("/proc/self/oom_score_adj", O_WRONLY | O_CLOEXEC);
+        if (fd >= 0) {
+            const char value[] = "-1000";
+            if (write_full(fd, value, sizeof(value) - 1) != 0) {
+                LOGW("write /proc/self/oom_score_adj failed with %d: %s", errno, strerror(errno));
+            }
+            close(fd);
+        } else {
+            LOGW("open /proc/self/oom_score_adj failed with %d: %s", errno, strerror(errno));
+        }
     }
 
     wait_for_zygote();

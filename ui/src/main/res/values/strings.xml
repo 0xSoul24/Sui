@@ -23,6 +23,6 @@
     <string name="action_about">About</string>
     <string name="about_author">Author: %1$s</string>
     <string name="about_button_ok">OK</string>
-    <string name="action_batch_unconfigured">Batch process unconfigured</string>
+    <string name="action_batch_unconfigured">Modify default value</string>
     <string name="action_filter_shizuku_apps">Show only Shizuku apps</string>
 </resources>

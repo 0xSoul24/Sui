@@ -59,6 +59,7 @@ public class PackageReceiver {
         intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         intentFilter.addAction(Intent.ACTION_PACKAGE_FULLY_REMOVED);
         intentFilter.addDataScheme("package");
+        intentFilter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
 
         Handler handler = new Handler(Looper.getMainLooper());
 
