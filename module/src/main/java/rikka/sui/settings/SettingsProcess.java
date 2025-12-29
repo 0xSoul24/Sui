@@ -57,7 +57,7 @@ public class SettingsProcess {
     private static Handler handler;
     private static HandlerThread handlerThread;
 
-    private static void requestPinnedShortcutInDeveloperOptions(Application application, Resources resources) {
+    /*private static void requestPinnedShortcutInDeveloperOptions(Application application, Resources resources) {
         ResolveInfo ri = application.getPackageManager().resolveActivity(
                 new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS).setPackage(application.getPackageName()), 0);
 
@@ -125,7 +125,7 @@ public class SettingsProcess {
         });
 
         LOGGER.d("registerActivityLifecycleCallbacks");
-    }
+    }*/
 
     @TargetApi(Build.VERSION_CODES.O)
     private static void shortcutStuff(Application application, Resources resources) {
@@ -154,11 +154,11 @@ public class SettingsProcess {
             LOGGER.i("Dynamic shortcut exists and up to date");
         }
 
-        try {
+        /*try {
             requestPinnedShortcutInDeveloperOptions(application, resources);
         } catch (Throwable e) {
             LOGGER.e(e, "requestPinnedShortcutInDeveloperOptions");
-        }
+        }*/
 
         handlerThread.quit();
     }

@@ -40,11 +40,12 @@ You can download and install Sui from Magisk directly. Or, download the zip from
 
 ### Management UI
 
-- (Android 8.0+, Sui 12.1+) Long press system settings from the home app, you will find the shortcut of Sui
-- (Android 8.0+, Sui 12+) Enter "Developer options" in system settings, the system will ask you to add the shortcut of Sui
+- Long press the **System Settings** icon on the home screen to see the Sui shortcut
+- In the Sui management interface, tap the menu button (three dots) in the top-right corner and select **"Add shortcut to home screen"**
 - Enter `*#*#784784#*#*` in the default dialer app
+- Open the Sui management interface via the **Action** button in the KernelSU/Magisk manager
 
-Note, the shortcut way requires your home app supports shortcut APIs that adds from Android 7.0 and 8.0. Unless you are using a old home app, you can the shortcut with no problem.
+> **Note:** On some systems, the Sui shortcut may not appear when long-pressing Settings. Additionally, to avoid disturbance, the feature that automatically prompts to add a shortcut when entering "Developer options" has been **removed** in this version.
 
 ### Interactive shell
 
