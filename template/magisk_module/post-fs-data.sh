@@ -2,6 +2,35 @@
 MODDIR=${0%/*}
 MODULE_ID=$(basename "$MODDIR")
 
+SUI_DIR="/data/system/sui"
+API_LEVEL=$(getprop ro.build.version.sdk)
+
+if [ "$API_LEVEL" -lt 26 ] && [ -d "$SUI_DIR" ]; then
+    rm -rf "$SUI_DIR"
+fi
+
+if [ "$API_LEVEL" -le 27 ]; then
+    mkdir -p "$SUI_DIR/oat"
+    chown -R 1000:1000 "$SUI_DIR"
+    chmod 771 "$SUI_DIR"
+    chmod 777 "$SUI_DIR/oat"
+fi
+
+if [ "$API_LEVEL" -lt 26 ]; then
+    rm -f "$SUI_DIR/sui.dex"
+    cp "$MODDIR/sui.apk" "$SUI_DIR/sui.apk"
+    chmod 644 "$SUI_DIR/sui.apk"
+    restorecon -R "$SUI_DIR"
+    chcon -R u:object_r:system_data_file:s0 "$SUI_DIR"
+
+elif [ "$API_LEVEL" -le 27 ]; then
+    cp "$MODDIR/sui.dex" "$SUI_DIR/sui.dex"
+    chmod 644 "$SUI_DIR/sui.dex"
+    cp "$MODDIR/sui.apk" "$SUI_DIR/sui.apk"
+    chmod 644 "$SUI_DIR/sui.apk"
+    chcon -R u:object_r:system_file:s0 "$SUI_DIR"
+fi
+
 if [ "$ZYGISK_ENABLED" = false ]; then
   log -p w -t "Sui" "Zygisk is disabled"
   exit 1

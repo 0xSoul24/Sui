@@ -72,18 +72,25 @@ public:
             return;
         }
 
+        LOGI("SuiZygisk: postAppSpecialize start for identity %d", whoami);
         char app_data_dir[PATH_MAX]{0};
 
         if (args->app_data_dir) {
             ScopedUtfChars appDataDir{env_, args->app_data_dir};
             strcpy(app_data_dir, appDataDir.c_str());
+            LOGI("SuiZygisk: app_data_dir is %s", app_data_dir);
+        } else {
+            LOGI("SuiZygisk: app_data_dir is NULL");
         }
 
         if (whoami == Identity::SETTINGS) {
+            LOGI("SuiZygisk: Calling Settings::main");
             Settings::main(env_, app_data_dir, dex);
         } else if (whoami == Identity::SYSTEM_UI) {
+            LOGI("SuiZygisk: Calling Manager::main");
             Manager::main(env_, app_data_dir, dex);
         }
+        LOGI("SuiZygisk: postAppSpecialize finished");
     }
 
     void preServerSpecialize(zygisk::ServerSpecializeArgs *args) override {

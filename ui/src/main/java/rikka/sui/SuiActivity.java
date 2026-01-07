@@ -35,6 +35,12 @@ public class SuiActivity extends AppActivity {
     public SuiActivity(Application application, Resources resources) {
         super(application, resources);
     }
+
+    @Override
+    public android.content.ComponentName getComponentName() {
+        return new android.content.ComponentName(getPackageName(), "com.android.settings.Settings$WifiSettingsActivity");
+    }
+
     private int resolveThemeColor(@androidx.annotation.AttrRes int attrRes) {
         android.util.TypedValue typedValue = new android.util.TypedValue();
         getTheme().resolveAttribute(attrRes, typedValue, true);

@@ -49,24 +49,33 @@ namespace Manager {
     static jclass mainClass = nullptr;
 
     static bool installDex(JNIEnv *env, const char *appDataDir, Dex *dexFile) {
-        if (android_get_device_api_level() < 26) {
+        int api = android_get_device_api_level();
+        if (api <= 25) {
             char dexPath[PATH_MAX], oatDir[PATH_MAX];
-            snprintf(dexPath, PATH_MAX, "%s/sui/%s", appDataDir, DEX_NAME);
-            snprintf(oatDir, PATH_MAX, "%s/sui/oat", appDataDir);
+            snprintf(dexPath, PATH_MAX, "%s/sui.dex", appDataDir);
+            snprintf(oatDir, PATH_MAX, "%s/code_cache", appDataDir);
+
+            LOGI("installDex (Restore 7.1): using private paths: dex=%s, oat=%s", dexPath, oatDir);
+            dexFile->setPre26Paths(dexPath, oatDir);
+        } else if (api == 26 || api == 27) {
+            const char* dexPath = "/data/system/sui/sui.dex";
+            const char* oatDir = "/data/system/sui/oat";
+
+            LOGI("installDex (8.0/8.1): using global system paths: dex=%s, oat=%s", dexPath, oatDir);
             dexFile->setPre26Paths(dexPath, oatDir);
         }
         dexFile->createClassLoader(env);
 
         mainClass = dexFile->findClass(env, MANAGER_PROCESS_CLASSNAME);
         if (!mainClass) {
-            LOGE("unable to find main class");
+            LOGE("installDex: unable to find main class: %s", MANAGER_PROCESS_CLASSNAME);
             return false;
         }
         mainClass = (jclass) env->NewGlobalRef(mainClass);
 
         auto mainMethod = env->GetStaticMethodID(mainClass, "main", "([Ljava/lang/String;)V");
         if (!mainMethod) {
-            LOGE("unable to find main method");
+            LOGE("installDex: unable to find main method");
             env->ExceptionDescribe();
             env->ExceptionClear();
             return false;
@@ -76,7 +85,7 @@ namespace Manager {
 
         env->CallStaticVoidMethod(mainClass, mainMethod, args);
         if (env->ExceptionCheck()) {
-            LOGE("unable to call main method");
+            LOGE("installDex: exception in main method");
             env->ExceptionDescribe();
             env->ExceptionClear();
             return false;

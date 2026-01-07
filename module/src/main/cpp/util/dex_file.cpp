@@ -90,8 +90,10 @@ size_t Buffer::size() const {
 int Buffer::writeToFile(const char *path, mode_t mode) {
     if (!bytes_) return -1;
 
-    auto dir = dirname(path);
+    char *path_copy = strdup(path);
+    auto dir = dirname(path_copy);
     mkdirs(dir, mode);
+    free(path_copy);
 
     int fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, mode);
     if (fd == -1) {
@@ -125,7 +127,7 @@ Dex::~Dex() {
 }
 
 void Dex::createClassLoader(JNIEnv *env) {
-    if (android_get_device_api_level() >= 26) {
+    if (android_get_device_api_level() >= 27) {
         createInMemoryDexClassLoader(env);
     } else {
         copyDexToFile(pre26DexPath_);
@@ -187,11 +189,13 @@ void Dex::createDexClassLoader(JNIEnv *env, const char *path, const char *optDir
 void Dex::copyDexToFile(const char *dexPath) {
     if (!buffer_.data()) return;
 
+    // Even if this fails (e.g. due to permissions/SELinux), we proceed because
     int fd = buffer_.writeToFile(dexPath, 0700);
-    if (fd == -1) {
-        return;
+    if (fd != -1) {
+        close(fd);
+    } else {
+        PLOGE("copyDexToFile: write failed, but proceeding to try loading");
     }
-    close(fd);
 }
 
 jclass Dex::findClass(JNIEnv *env, const char *name) {

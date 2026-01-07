@@ -203,10 +203,32 @@ public class SettingsProcess {
                     }
                 };
                 IntentFilter filter = new IntentFilter("rikka.sui.ACTION_REQUEST_PINNED_SHORTCUT");
-                application.registerReceiver(shortcutReceiver, filter, Context.RECEIVER_EXPORTED);
-                LOGGER.i("Shortcut creation broadcast receiver registered.");
+                
+                // Smart reflection to support both Android 7.1 and Android 14+
+                try {
+                    java.lang.reflect.Method m2 = null;
+                    java.lang.reflect.Method m3 = null;
+                    for (java.lang.reflect.Method m : Context.class.getMethods()) {
+                        if (m.getName().equals("registerReceiver")) {
+                            Class<?>[] params = m.getParameterTypes();
+                            if (params.length == 2 && params[0].equals(BroadcastReceiver.class) && params[1].equals(IntentFilter.class)) {
+                                m2 = m;
+                            } else if (params.length == 3 && params[0].equals(BroadcastReceiver.class) && params[1].equals(IntentFilter.class) && params[2].equals(int.class)) {
+                                m3 = m;
+                            }
+                        }
+                    }
+
+                    if (m3 != null) {
+                        m3.invoke(application, shortcutReceiver, filter, 2);
+                    } else if (m2 != null) {
+                        m2.invoke(application, shortcutReceiver, filter);
+                    }
+                } catch (Throwable e) {
+                    LOGGER.e(e, "Failed to register receiver");
+                }
             } catch (Throwable e) {
-                LOGGER.e(e, "Failed to register shortcut creation broadcast receiver.");
+                LOGGER.e(e, "Failed to setup shortcut creation broadcast receiver.");
             }
 
             Resources resources = newInstrumentation.getResources();

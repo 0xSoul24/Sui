@@ -80,7 +80,7 @@ namespace SystemServer {
     }
 
     static bool installDex(JNIEnv *env, Dex *dexFile) {
-        if (android_get_device_api_level() < 26) {
+        if (android_get_device_api_level() < 27) {
             dexFile->setPre26Paths("/data/system/sui/"  DEX_NAME, "/data/system/sui/oat");
         }
         dexFile->createClassLoader(env);

@@ -34,7 +34,7 @@ public class SuiConfigManager extends ConfigManager {
             LOGGER.e("SuiConfigManager: failed to read database, starting empty");
             return new SuiConfig();
         }
-        LOGGER.e("SuiConfigManager: Loaded " + config.packages.size() + " packages from database.");
+        LOGGER.i("SuiConfigManager: Loaded " + config.packages.size() + " packages from database.");
         return config;
     }
 
@@ -88,7 +88,7 @@ public class SuiConfigManager extends ConfigManager {
             if (defaultEntry == null || defaultEntry.flags == 0) {
                 return null;
             }
-            LOGGER.e("SuiConfigManager: Using DEFAULT flags for uid " + uid + ". Flags: " + defaultEntry.flags);
+            LOGGER.i("SuiConfigManager: Using DEFAULT flags for uid " + uid + ". Flags: " + defaultEntry.flags);
             return new SuiConfig.PackageEntry(uid, defaultEntry.flags);
         }
     }
@@ -99,7 +99,7 @@ public class SuiConfigManager extends ConfigManager {
     }
 
     public void update(int uid, int mask, int values) {
-        LOGGER.e("SuiConfigManager: update uid=" + uid + " mask=" + mask + " val=" + values);
+        LOGGER.i("SuiConfigManager: update uid=" + uid + " mask=" + mask + " val=" + values);
         boolean needRemove = false;
         boolean needUpdate = false;
         int finalFlags = 0;
@@ -115,7 +115,7 @@ public class SuiConfigManager extends ConfigManager {
                 config.packages.add(entry);
                 needUpdate = true;
                 finalFlags = newValue;
-                LOGGER.e("SuiConfigManager: Added new entry for uid " + uid);
+                LOGGER.i("SuiConfigManager: Added new entry for uid " + uid);
             } else {
                 int newValue = (entry.flags & ~mask) | (mask & values);
                 if (newValue == entry.flags) {
@@ -124,12 +124,12 @@ public class SuiConfigManager extends ConfigManager {
                 if (newValue == 0) {
                     config.packages.remove(entry);
                     needRemove = true;
-                    LOGGER.e("SuiConfigManager: Removed entry for uid " + uid);
+                    LOGGER.i("SuiConfigManager: Removed entry for uid " + uid);
                 } else {
                     entry.flags = newValue;
                     needUpdate = true;
                     finalFlags = newValue;
-                    LOGGER.e("SuiConfigManager: Updated entry for uid " + uid);
+                    LOGGER.i("SuiConfigManager: Updated entry for uid " + uid);
                 }
             }
         }
@@ -174,7 +174,7 @@ public class SuiConfigManager extends ConfigManager {
     }
 
     public void setDefaultPermissionFlags(int flags) {
-        LOGGER.e("SuiConfigManager: Setting default permission flags: " + flags);
+        LOGGER.i("SuiConfigManager: Setting default permission flags: " + flags);
         int value = flags & SuiConfig.MASK_PERMISSION;
         if (value == 0) {
             remove(DEFAULT_UID);

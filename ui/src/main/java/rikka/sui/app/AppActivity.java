@@ -65,6 +65,10 @@ public class AppActivity extends AppCompatActivity {
     }
 
     @Override
+    public android.content.ComponentName getComponentName() {
+        return new android.content.ComponentName(getPackageName(), "com.android.settings.Settings$WifiSettingsActivity");
+    }
+    @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         setTheme(R.style.Theme_Material3_DayNight_NoActionBar);
         super.onCreate(savedInstanceState);

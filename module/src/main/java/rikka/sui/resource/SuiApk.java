@@ -86,9 +86,15 @@ public class SuiApk {
         } while (retries > 0);
 
         String apkPath;
-        ParcelFileDescriptor pfd = Objects.requireNonNull(BridgeServiceClient.openApk());
-        int fd = pfd.detachFd();
-        apkPath = "/proc/self/fd/" + fd;
+        if (Build.VERSION.SDK_INT < 28) {
+            apkPath = "/data/system/sui/sui.apk";
+            LOGGER.i("SuiApk: Forced to use physical path: %s", apkPath);
+        } else {
+            ParcelFileDescriptor pfd = Objects.requireNonNull(BridgeServiceClient.openApk());
+            int fd = pfd.detachFd();
+            apkPath = "/proc/self/fd/" + fd;
+            LOGGER.i("SuiApk: Using FD path: %s", apkPath);
+        }
 
         classLoader = new PathClassLoader(apkPath, ClassLoader.getSystemClassLoader());
 

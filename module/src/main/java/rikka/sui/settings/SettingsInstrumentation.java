@@ -339,6 +339,21 @@ public class SettingsInstrumentation extends Instrumentation {
 
     @Override
     public Activity newActivity(Class<?> clazz, Context context, IBinder token, Application application, Intent intent, ActivityInfo info, CharSequence title, Activity parent, String id, Object lastNonConfigurationInstance) throws IllegalAccessException, InstantiationException {
+        LOGGER.v("newActivity (10 args): %s", clazz.getName());
+        if (suiActivityConstructor != null) {
+            Bundle extras = intent.getExtras();
+            if (extras != null) {
+                extras.setClassLoader(clazz.getClassLoader());
+                if (extras.getInt(SHORTCUT_EXTRA, -1) != -1) {
+                    LOGGER.v("creating SuiActivity from 10 args newActivity");
+                    try {
+                        return (Activity) suiActivityConstructor.newInstance(application, resources);
+                    } catch (InvocationTargetException e) {
+                        LOGGER.e(e, "Cannot create activity from 10 args");
+                    }
+                }
+            }
+        }
         return original.newActivity(clazz, context, token, application, intent, info, title, parent, id, lastNonConfigurationInstance);
     }
 

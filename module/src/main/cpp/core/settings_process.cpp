@@ -51,24 +51,33 @@ namespace Settings {
     static jint bindApplicationTransactionCode = -1;
 
     static bool installDex(JNIEnv *env, const char *appDataDir, Dex *dexFile) {
-        if (android_get_device_api_level() < 26) {
+        int api = android_get_device_api_level();
+        if (api <= 25) {
             char dexPath[PATH_MAX], oatDir[PATH_MAX];
-            snprintf(dexPath, PATH_MAX, "%s/sui/%s", appDataDir, DEX_NAME);
-            snprintf(oatDir, PATH_MAX, "%s/sui/oat", appDataDir);
+            snprintf(dexPath, PATH_MAX, "%s/sui.dex", appDataDir);
+            snprintf(oatDir, PATH_MAX, "%s/code_cache", appDataDir);
+            
+            LOGI("installDex (Restore 7.1): using private paths: dex=%s, oat=%s", dexPath, oatDir);
+            dexFile->setPre26Paths(dexPath, oatDir);
+        } else if (api == 26 || api == 27) {
+            const char* dexPath = "/data/system/sui/sui.dex";
+            const char* oatDir = "/data/system/sui/oat";
+            
+            LOGI("installDex (8.0/8.1): using global system paths: dex=%s, oat=%s", dexPath, oatDir);
             dexFile->setPre26Paths(dexPath, oatDir);
         }
         dexFile->createClassLoader(env);
 
         mainClass = dexFile->findClass(env, SETTINGS_PROCESS_CLASSNAME);
         if (!mainClass) {
-            LOGE("unable to find main class");
+            LOGE("installDex: unable to find main class: %s", SETTINGS_PROCESS_CLASSNAME);
             return false;
         }
         mainClass = (jclass) env->NewGlobalRef(mainClass);
 
         auto mainMethod = env->GetStaticMethodID(mainClass, "main", "([Ljava/lang/String;)V");
         if (!mainMethod) {
-            LOGE("unable to find main method");
+            LOGE("installDex: unable to find main method");
             env->ExceptionDescribe();
             env->ExceptionClear();
             return false;
@@ -76,7 +85,7 @@ namespace Settings {
 
         my_execTransactMethodID = env->GetStaticMethodID(mainClass, "execTransact", "(Landroid/os/Binder;IJJI)Z");
         if (!my_execTransactMethodID) {
-            LOGE("unable to find execTransact");
+            LOGE("installDex: unable to find execTransact");
             env->ExceptionDescribe();
             env->ExceptionClear();
             return false;
@@ -86,7 +95,7 @@ namespace Settings {
 
         env->CallStaticVoidMethod(mainClass, mainMethod, args);
         if (env->ExceptionCheck()) {
-            LOGE("unable to call main method");
+            LOGE("installDex: exception in main method");
             env->ExceptionDescribe();
             env->ExceptionClear();
             return false;
@@ -104,6 +113,8 @@ namespace Settings {
         jlong replyObj;
         jint flags;
 
+        if (bindApplicationTransactionCode == -1) return false;
+
         va_list copy;
         va_copy(copy, args);
         code = va_arg(copy, jint);
@@ -112,7 +123,11 @@ namespace Settings {
         flags = va_arg(copy, jint);
         va_end(copy);
 
-        if (bindApplicationTransactionCode != -1 && code == bindApplicationTransactionCode) {
+        if (code == bindApplicationTransactionCode) {
+            if (!mainClass) {
+                LOGW("ExecTransact: mainClass is null, dex not ready yet?");
+                return false;
+            }
             *res = env->CallStaticBooleanMethod(mainClass, my_execTransactMethodID, obj, code, dataObj, replyObj, flags);
             if (*res) return true;
         }
@@ -121,43 +136,41 @@ namespace Settings {
     }
 
     void main(JNIEnv *env, const char *appDataDir, Dex *dexFile) {
-        if (android_get_device_api_level() <= 26) {
-            return;
-        }
-
         if (!dexFile->valid()) {
             LOGE("no dex");
             return;
         }
 
-        LOGV("main: manager");
+        env->ExceptionClear();
+        LOGI("main: settings startup");
 
-        LOGV("install dex");
-
-        if (!installDex(env, appDataDir, dexFile)) {
-            LOGE("can't install dex");
-            return;
+        if (android_get_device_api_level() >= 26) {
+            jclass applicationThreadClass = env->FindClass("android/app/IApplicationThread$Stub");
+            if (applicationThreadClass) {
+                jfieldID bindApplicationId = env->GetStaticFieldID(applicationThreadClass, "TRANSACTION_bindApplication", "I");
+                if (bindApplicationId) {
+                    bindApplicationTransactionCode = env->GetStaticIntField(applicationThreadClass, bindApplicationId);
+                }
+                env->ExceptionClear();
+            }
+        } else if (android_get_device_api_level() <= 25) {
+            bindApplicationTransactionCode = 13;
+            LOGI("main: set bindApplicationTransactionCode to 13 for API <= 25");
         }
-
-        LOGV("install dex finished");
 
         JavaVM *javaVm;
         env->GetJavaVM(&javaVm);
 
         BinderHook::Install(javaVm, env, ExecTransact);
+        env->ExceptionClear();
 
-        if (android_get_device_api_level() >= 26) {
-            jclass applicationThreadClass;
-            jfieldID bindApplicationId;
+        LOGI("main: install dex starting (dir=%s)", appDataDir ? appDataDir : "null");
 
-            applicationThreadClass = env->FindClass("android/app/IApplicationThread$Stub");
-            if (!applicationThreadClass) goto clean;
-            bindApplicationId = env->GetStaticFieldID(applicationThreadClass, "TRANSACTION_bindApplication", "I");
-            if (!bindApplicationId) goto clean;
-            bindApplicationTransactionCode = env->GetStaticIntField(applicationThreadClass, bindApplicationId);
-
-            clean:
-            env->ExceptionClear();
+        if (!installDex(env, appDataDir, dexFile)) {
+            LOGE("main: install dex failed");
+            return;
         }
+
+        LOGI("main: settings injection finished");
     }
 }
