@@ -33,7 +33,7 @@ android {
     }
     buildTypes {
         debug {
-            defaultConfig.minSdk 24
+            defaultConfig.minSdk 23
             multiDexEnabled false
         }
         release {
@@ -71,28 +71,17 @@ dependencies {
 
 def outDir = file("$rootDir/out")
 
-afterEvaluate {
-    def isIDE = properties.containsKey('android.injected.invoked.from.ide')
-    if (isIDE) {
-        println("Invoked from IDE")
-    } else {
-        println("Invoked from command line")
-    }
-
-    android.applicationVariants.all { variant ->
+androidComponents {
+    onVariants(selector().all(), { variant ->
         def variantCapped = variant.name.capitalize()
         def variantLowered = variant.name.toLowerCase()
-        def buildTypeCapped = variant.getBuildType().getName().capitalize()
-        def buildTypeLowered = variant.getBuildType().getName().toLowerCase()
+        def buildTypeCapped = variant.buildType.capitalize()
+        def buildTypeLowered = variant.buildType.toLowerCase()
 
         def zipName = "sui-${moduleVersion}_${moduleVersionCode.toString()}-${buildTypeLowered}.zip"
         def magiskDir = file("$outDir/${buildTypeLowered}")
 
-        tasks.getByName("pre${variantCapped}Build").dependsOn(":ui:assemble${buildTypeCapped}")
-
-        task("prepareMagiskFiles${variantCapped}", type: Sync) {
-            dependsOn("assemble$variantCapped")
-
+        tasks.register("prepareMagiskFiles${variantCapped}", Sync) {
             def templatePath = "$rootDir/template/magisk_module"
 
             into magiskDir
@@ -119,12 +108,12 @@ afterEvaluate {
                         eol: FixCrLfFilter.CrLf.newInstance("lf"))
             }
             from((buildTypeLowered == "release") ?
-                    "$buildDir/intermediates/dex/${variant.name}/minify${variantCapped}WithR8" :
-                    "$buildDir/intermediates/dex/${variant.name}/mergeDex$variantCapped") {
+                    "$buildDir/intermediates/dex/${variantLowered}/minify${variantCapped}WithR8" :
+                    "$buildDir/intermediates/dex/${variantLowered}/mergeDex$variantCapped") {
                 include 'classes.dex'
                 rename { 'sui.dex' }
             }
-            from("$buildDir/intermediates/stripped_native_libs/${variant.name}/strip${variantCapped}DebugSymbols/out/lib") {
+            from("$buildDir/intermediates/stripped_native_libs/${variantLowered}/strip${variantCapped}DebugSymbols/out/lib") {
                 into 'lib'
             }
             from("${rootProject.findProject('ui').buildDir}/outputs/apk/$buildTypeLowered") {
@@ -145,42 +134,62 @@ afterEvaluate {
             }
         }
 
-        task("zip${variantCapped}", type: Zip) {
+        tasks.register("zip${variantCapped}", Zip) {
             dependsOn("prepareMagiskFiles${variantCapped}")
             from magiskDir
             archiveFileName = zipName
             destinationDirectory = outDir
         }
 
-        task("push${variantCapped}", type: Exec) {
-            dependsOn("assemble${variantCapped}")
+        tasks.register("push${variantCapped}", Exec) {
             workingDir outDir
-            commandLine android.adbExecutable, "push", zipName, "/data/local/tmp/"
+            commandLine "adb", "push", zipName, "/data/local/tmp/"
         }
 
-        task("flash${variantCapped}", type: Exec) {
+        tasks.register("flash${variantCapped}", Exec) {
             dependsOn("push${variantCapped}")
-            commandLine android.adbExecutable, "shell", "su", "-c",
+            commandLine "adb", "shell", "su", "-c",
                     "magisk --install-module /data/local/tmp/${zipName}"
         }
 
-        task("flashWithKsud${variantCapped}", type: Exec) {
+        tasks.register("flashWithKsud${variantCapped}", Exec) {
             dependsOn("push${variantCapped}")
-            commandLine android.adbExecutable, "shell", "su", "-c",
+            commandLine "adb", "shell", "su", "-c",
                     "ksud module install /data/local/tmp/${zipName}"
         }
 
-        task("flashAndReboot${variantCapped}", type: Exec) {
+        tasks.register("flashAndReboot${variantCapped}", Exec) {
             dependsOn("flash${variantCapped}")
-            commandLine android.adbExecutable, "shell", "reboot"
+            commandLine "adb", "shell", "reboot"
             ignoreExitValue = true
         }
 
-        task("flashWithKsudAndReboot${variantCapped}", type: Exec) {
+        tasks.register("flashWithKsudAndReboot${variantCapped}", Exec) {
             dependsOn("flashWithKsud${variantCapped}")
-            commandLine android.adbExecutable, "shell", "reboot"
+            commandLine "adb", "shell", "reboot"
             ignoreExitValue = true
         }
-        variant.assembleProvider.get().finalizedBy("zip${variantCapped}")
+    })
+}
+
+afterEvaluate {
+    ['Debug', 'Release'].each { buildType ->
+        def buildTypeLowered = buildType.toLowerCase()
+
+        tasks.named("pre${buildType}Build").configure {
+            dependsOn(":ui:assemble${buildType}")
+        }
+
+        tasks.named("prepareMagiskFiles${buildType}").configure {
+            dependsOn("assemble${buildType}")
+        }
+
+        tasks.named("assemble${buildType}").configure {
+            finalizedBy("zip${buildType}")
+        }
+
+        tasks.named("push${buildType}").configure {
+            dependsOn("assemble${buildType}")
+        }
     }
 }

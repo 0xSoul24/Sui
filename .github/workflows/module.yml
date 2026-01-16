@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - '.github/ISSUE_TEMPLATE'
       - '**/README.md'
+  workflow_dispatch:
 
 jobs:
   build:

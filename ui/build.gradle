@@ -3,7 +3,6 @@ import java.nio.file.Paths
 
 plugins {
     id('com.android.application')
-    id('org.jetbrains.kotlin.android')
     id('dev.rikka.tools.refine')
 }
 
@@ -12,7 +11,7 @@ apply from: file(rootProject.file('module.gradle'))
 android {
     namespace "rikka.sui"
     defaultConfig {
-        minSdk 24
+        minSdk 23
         versionCode gitCommitCount
         versionName moduleVersion.substring(1)
         resConfigs 'en', 'zh', 'zh-rCN', 'zh-rTW'
