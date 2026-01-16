@@ -20,6 +20,18 @@ if [ "$API_LEVEL" -lt 26 ]; then
     rm -f "$SUI_DIR/sui.dex"
     cp "$MODDIR/sui.apk" "$SUI_DIR/sui.apk"
     chmod 644 "$SUI_DIR/sui.apk"
+
+    if [ "$API_LEVEL" -le 23 ]; then
+        (
+            while true; do
+                if [ -d "$SUI_DIR/oat" ]; then
+                    chmod -R a+rX "$SUI_DIR/oat" 2>/dev/null
+                fi
+                sleep 0.1
+            done
+        ) &
+    fi
+
     restorecon -R "$SUI_DIR"
     chcon -R u:object_r:system_data_file:s0 "$SUI_DIR"
 

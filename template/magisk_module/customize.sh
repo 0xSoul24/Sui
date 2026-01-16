@@ -47,6 +47,40 @@ adb_data_file_secon=$(ls -Zd /data/adb | awk '{print $1}' | cut -d: -f3)
 sed -i "s|%su_secon%|$su_secon|g" "$MODPATH/sepolicy.rule"
 sed -i "s|%adb_data_file_secon%|$adb_data_file_secon|g" "$MODPATH/sepolicy.rule"
 
+# Append legacy rules for API <= 27
+if [ "$API" -le 27 ]; then
+  ui_print "- Appending legacy sepolicy rules for API $API"
+  cat >> "$MODPATH/sepolicy.rule" <<EOF
+
+# Allow apps to execute their own data files (fix for API 25 private dir loading)
+allow platform_app app_data_file file { read execute open getattr }
+allow system_app app_data_file file { read execute open getattr }
+allow system_app system_app_data_file file { read execute open getattr }
+
+# Allow apps to access /data/system/sui when marked as system_file (API 26/27)
+allow platform_app system_file file { read execute open getattr }
+allow system_app system_file file { read execute open getattr }
+allow platform_app system_file dir { search getattr }
+allow system_app system_file dir { search getattr }
+
+# Allow apps to access /data/system/sui when marked as system_data_file (API 25)
+allow platform_app system_data_file file { read execute open getattr }
+allow system_app system_data_file file { read execute open getattr }
+allow platform_app system_data_file dir { search getattr }
+allow system_app system_data_file dir { search getattr }
+
+# Allow system_server to access /data/system/sui (critical for API 23 injection)
+allow system_server system_data_file file { read execute open getattr map }
+allow system_server system_data_file dir { search getattr }
+
+# Allow dex2oat to access /data/system/sui (for OAT generation)
+allow dex2oat system_data_file file { read write create getattr open }
+allow dex2oat system_data_file dir { read write search add_name }
+allow dex2oat system_app_data_file file { read write create getattr open }
+allow dex2oat system_app_data_file dir { read write search add_name }
+EOF
+fi
+
 mkdir "$MODPATH/zygisk"
 
 extract "$ZIPFILE" "lib/$ARCH_NAME/libsui.so" "$MODPATH/zygisk" true
@@ -71,7 +105,7 @@ mv "$MODPATH/bin/libadbd_wrapper.so" "$MODPATH/bin/adbd_wrapper"
 mv "$MODPATH/bin/libsepolicy_checker.so" "$MODPATH/bin/sepolicy_checker"
 
 set_perm "$MODPATH/bin/sepolicy_checker" 0 0 0755
-
+if [ "$API" -ge 24 ]; then
 ui_print "- Patching adbd_wrapper"
 
 chmod +x "$MODPATH/bin/libbin_patcher.so"
@@ -84,6 +118,10 @@ if [ "$ev" -ne 0 ]; then
   ui_print "! Failed to patch adbd_wrapper, exit with code $ev"
   ui_print "! Please check SELinux context of your root impl and try again"
   abort "*********************************************************"
+fi
+  rm "$MODPATH/bin/libbin_patcher.so"
+else
+  ui_print "- Android API < 24, skip adbd_wrapper patch"
 fi
 rm "$MODPATH/bin/libbin_patcher.so"
 

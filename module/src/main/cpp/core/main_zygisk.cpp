@@ -48,12 +48,18 @@ public:
             strcpy(process_name, niceName.c_str());
         }
 
-#ifdef DEBUG
         if (args->app_data_dir) {
             ScopedUtfChars appDataDir{env_, args->app_data_dir};
             strcpy(app_data_dir, appDataDir.c_str());
         }
-#endif
+
+        if (process_name[0] == '\0' && app_data_dir[0] != '\0') {
+            auto p = strrchr(app_data_dir, '/');
+            if (p != nullptr) {
+                strcpy(process_name, p + 1);
+            }
+        }
+
         LOGI("SuiZygisk: preAppSpecialize: uid=%d, process=%s, app_data_dir=%s", args->uid, process_name, app_data_dir);
 
         InitCompanion(false, args->uid, process_name);

@@ -43,6 +43,7 @@
 #include "bridge_service.h"
 #include "binder_hook.h"
 #include "config.h"
+#include <pthread.h>
 
 namespace Manager {
 
@@ -55,7 +56,7 @@ namespace Manager {
             snprintf(dexPath, PATH_MAX, "%s/sui.dex", appDataDir);
             snprintf(oatDir, PATH_MAX, "%s/code_cache", appDataDir);
 
-            LOGI("installDex (Restore 7.1): using private paths: dex=%s, oat=%s", dexPath, oatDir);
+            LOGI("installDex (Below 7.1): using private paths: dex=%s, oat=%s", dexPath, oatDir);
             dexFile->setPre26Paths(dexPath, oatDir);
         } else if (api == 26 || api == 27) {
             const char* dexPath = "/data/system/sui/sui.dex";
@@ -94,6 +95,29 @@ namespace Manager {
         return true;
     }
 
+    struct InjectArgs {
+        JavaVM *vm;
+        char *appDataDir;
+        Dex *dexFile;
+    };
+
+    static void *InjectRoutine(void *data) {
+        auto args = (InjectArgs *) data;
+        JNIEnv *env;
+        if (args->vm->AttachCurrentThread(&env, nullptr) == JNI_OK) {
+            LOGI("Async injection started");
+            if (installDex(env, args->appDataDir, args->dexFile)) {
+                LOGI("Async injection success");
+            } else {
+                LOGE("Async injection failed");
+            }
+            args->vm->DetachCurrentThread();
+        }
+        if (args->appDataDir) free(args->appDataDir);
+        delete args;
+        return nullptr;
+    }
+
     void main(JNIEnv *env, const char *appDataDir, Dex *dexFile) {
         if (!dexFile->valid()) {
             LOGE("no dex");
@@ -102,13 +126,17 @@ namespace Manager {
 
         LOGV("main: manager");
 
-        LOGV("install dex");
+        JavaVM *vm;
+        env->GetJavaVM(&vm);
 
-        if (!installDex(env, appDataDir, dexFile)) {
-            LOGE("can't install dex");
-            return;
-        }
+        auto args = new InjectArgs();
+        args->vm = vm;
+        args->appDataDir = appDataDir ? strdup(appDataDir) : nullptr;
+        args->dexFile = dexFile;
 
-        LOGV("install dex finished");
+        pthread_t t;
+        pthread_create(&t, nullptr, InjectRoutine, args);
+
+        LOGV("install dex (async) scheduled");
     }
 }

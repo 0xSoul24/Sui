@@ -130,7 +130,7 @@ public class SettingsProcess {
     @TargetApi(Build.VERSION_CODES.O)
     private static void shortcutStuff(Application application, Resources resources) {
         UserManager userManager = application.getSystemService(UserManager.class);
-        if (!userManager.isUserUnlocked()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !userManager.isUserUnlocked()) {
             LOGGER.v("Not unlocked, wait 5s");
             handler.postDelayed(() -> shortcutStuff(application, resources), 5000);
             return;

@@ -57,7 +57,7 @@ namespace Settings {
             snprintf(dexPath, PATH_MAX, "%s/sui.dex", appDataDir);
             snprintf(oatDir, PATH_MAX, "%s/code_cache", appDataDir);
             
-            LOGI("installDex (Restore 7.1): using private paths: dex=%s, oat=%s", dexPath, oatDir);
+            LOGI("installDex (Below 7.1): using private paths: dex=%s, oat=%s", dexPath, oatDir);
             dexFile->setPre26Paths(dexPath, oatDir);
         } else if (api == 26 || api == 27) {
             const char* dexPath = "/data/system/sui/sui.dex";

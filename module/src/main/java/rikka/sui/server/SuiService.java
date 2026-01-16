@@ -362,9 +362,14 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
 
     @Override
     public void dispatchPermissionConfirmationResult(int requestUid, int requestPid, int requestCode, Bundle data) {
-        if (Binder.getCallingUid() != systemUiUid) {
-            LOGGER.w("dispatchPermissionConfirmationResult is allowed to be called only from the manager");
-            return;
+        int callingUid = Binder.getCallingUid();
+        if (callingUid != systemUiUid) {
+            if (callingUid == 1000) {
+                LOGGER.w("dispatchPermissionConfirmationResult: callingUid=%d matches SYSTEM_UID (1000) but not systemUiUid=%d. Allowing as fallback.", callingUid, systemUiUid);
+            } else {
+                LOGGER.w("dispatchPermissionConfirmationResult is allowed to be called only from the manager (callingUid=%d, systemUiUid=%d)", callingUid, systemUiUid);
+                return;
+            }
         }
 
         if (data == null) {

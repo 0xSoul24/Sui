@@ -6,8 +6,8 @@ message("Build type: ${CMAKE_BUILD_TYPE} Zygisk")
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_link_options(-ffixed-x18 -Wl,--hash-style=both)
-add_compile_options(-Werror=format -fdata-sections -ffunction-sections -fno-exceptions -fno-rtti -fno-threadsafe-statics)
+add_link_options(-ffixed-x18 -Wl,--hash-style=both -static-libstdc++)
+add_compile_options(-Werror=format -fdata-sections -ffunction-sections -fno-exceptions -fno-rtti -fno-threadsafe-statics -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0)
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(-Os -flto -fvisibility-inlines-hidden)

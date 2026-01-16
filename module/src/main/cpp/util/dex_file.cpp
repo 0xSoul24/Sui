@@ -23,6 +23,7 @@
 #include <jni.h>
 #include <android.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <libgen.h>
 #include "dex_file.h"
 #include "misc.h"
@@ -161,6 +162,12 @@ void Dex::createInMemoryDexClassLoader(JNIEnv *env) {
 }
 
 void Dex::createDexClassLoader(JNIEnv *env, const char *path, const char *optDir) {
+/*
+    if (optDir) {
+        mkdirs(optDir, 0700);
+    }
+*/
+
     jstring jDexPath = env->NewStringUTF(path);
     jstring jOptDir = optDir ? env->NewStringUTF(optDir) : nullptr;
 
@@ -180,7 +187,10 @@ void Dex::createDexClassLoader(JNIEnv *env, const char *path, const char *optDir
     dexClassLoader = env->NewGlobalRef(dexClassLoader);
 
     clean:
-    if (env->ExceptionCheck()) env->ExceptionClear();
+    if (env->ExceptionCheck()) {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+    }
     env->DeleteLocalRef(classLoaderClass);
     if (jOptDir) env->DeleteLocalRef(jOptDir);
     env->DeleteLocalRef(jDexPath);
@@ -189,9 +199,16 @@ void Dex::createDexClassLoader(JNIEnv *env, const char *path, const char *optDir
 void Dex::copyDexToFile(const char *dexPath) {
     if (!buffer_.data()) return;
 
+    size_t len = strlen(dexPath);
+    if (len > 4 && strcmp(dexPath + len - 4, ".apk") == 0) {
+        LOGI("copyDexToFile: skip writing to APK %s", dexPath);
+        return;
+    }
+
     // Even if this fails (e.g. due to permissions/SELinux), we proceed because
-    int fd = buffer_.writeToFile(dexPath, 0700);
+    int fd = buffer_.writeToFile(dexPath, 0644);
     if (fd != -1) {
+        fchmod(fd, 0644);
         close(fd);
     } else {
         PLOGE("copyDexToFile: write failed, but proceeding to try loading");
