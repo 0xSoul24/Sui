@@ -1,23 +1,23 @@
 name: Module
-
 on:
   push:
     paths-ignore:
       - '.github/ISSUE_TEMPLATE'
       - '**/README.md'
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-24.04
     if: ${{ !startsWith(github.event.head_commit.message, '[skip ci]') }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
           fetch-depth: 0
+      - name: Set Gradle distribution URL
+        run: |
+          sed -i 's|mirrors.cloud.tencent.com/gradle/|services.gradle.org/distributions/|g' ./gradle/wrapper/gradle-wrapper.properties
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -61,6 +61,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mappings
-          path: |
+          path: |-
             "module/build/outputs/mapping/release"
             "ui/build/outputs/mapping/release"
