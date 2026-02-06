@@ -1,9 +1,18 @@
 name: Module
+permissions:
+  contents: write
 on:
   push:
+    branches:
+      - main
     paths-ignore:
       - '.github/ISSUE_TEMPLATE'
       - '**/README.md'
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 jobs:
   build:
@@ -15,6 +24,15 @@ jobs:
         with:
           submodules: 'recursive'
           fetch-depth: 0
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper/
+          key: gradle-${{ hashFiles('**/gradle-wrapper.properties') }}-${{ hashFiles('**/*.gradle*', '**/build.gradle*') }}
+          restore-keys: |
+            gradle-
       - name: Set Gradle distribution URL
         run: |
           sed -i 's|mirrors.cloud.tencent.com/gradle/|services.gradle.org/distributions/|g' ./gradle/wrapper/gradle-wrapper.properties
@@ -30,15 +48,17 @@ jobs:
           build-scan-publish: true
           build-scan-terms-of-use-url: "https://gradle.com/terms-of-service"
           build-scan-terms-of-use-agree: "yes"
-      - name: Build with Gradle
-        id: buildWithGradle
+      - name: Accept Android licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+      - name: Configure Gradle properties
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
           echo 'android.sdk.channel=3' >> gradle.properties
           echo 'android.native.buildOutput=verbose' >> gradle.properties
           echo 'org.gradle.caching=true' >> gradle.properties
           echo 'org.gradle.parallel=true' >> gradle.properties
-          ./gradlew zipDebug zipRelease
+      - name: Build with Gradle
+        id: buildWithGradle
+        run: ./gradlew zipDebug zipRelease --parallel --build-cache --max-workers=$(nproc)
       - name: Prepare artifact
         if: success()
         id: prepareArtifact
@@ -47,7 +67,7 @@ jobs:
           debugName=`ls out/sui-*-debug.zip | awk -F '(/|.zip)' '{print $2}'` && echo "::set-output name=debugName::$debugName"
           unzip out/sui-*-release.zip -d sui-release
           unzip out/sui-*-debug.zip -d sui-debug
-      - name: Upload release
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prepareArtifact.outputs.releaseName }}
@@ -64,3 +84,101 @@ jobs:
           path: |-
             "module/build/outputs/mapping/release"
             "ui/build/outputs/mapping/release"
+      - name: Delete old Nightly assets
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+
+          OWNER="${{ github.repository_owner }}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+
+          echo "Find nightly release..."
+          RELEASE_JSON=$(gh api repos/$OWNER/$REPO/releases/tags/nightly 2>/dev/null || true)
+          RELEASE_ID=$(echo "$RELEASE_JSON" | jq -r '.id // empty')
+
+          if [ -z "$RELEASE_ID" ]; then
+            echo "Nightly release doesn't exist, skip deletion"
+            exit 0
+          fi
+
+          echo "Release ID: $RELEASE_ID"
+          echo "Get and delete all old assets (paginated)..."
+
+          ASSET_IDS=$(gh api --paginate repos/$OWNER/$REPO/releases/$RELEASE_ID/assets --jq '.[].id')
+
+          for ASSET_ID in $ASSET_IDS; do
+            echo "Delete asset $ASSET_ID"
+            gh api -X DELETE repos/$OWNER/$REPO/releases/assets/$ASSET_ID
+          done
+      - name: Update Nightly
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: nightly
+          name: Nightly Build
+          prerelease: true
+          overwrite: true
+          files: |
+            out/sui-*-release.zip
+            out/sui-*-debug.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          draft: false
+          prerelease: false
+          files: |
+            out/sui-*-release.zip
+            out/sui-*-debug.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get commit count
+        id: commit_count
+        run: |
+          COUNT=$(git rev-list --count HEAD)
+          echo "COUNT=$COUNT" >> $GITHUB_ENV
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Version: v$COUNT"
+      - name: Update sui_zygisk.json in pages branch
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          set -e
+
+          VERSION_CODE="${{ steps.commit_count.outputs.count }}"
+
+          RELEASE_ZIP=$(ls out/sui-*-release.zip | head -n1)
+          VERSION=$(echo "$RELEASE_ZIP" | sed -E 's/.*sui-(v[^_]+)_.*/\1/')
+          ZIP_NAME=$(basename "$RELEASE_ZIP")
+
+          ZIP_URL="https://github.com/${{ github.repository }}/releases/download/nightly/${ZIP_NAME}"
+
+          echo "Version: $VERSION"
+          echo "VersionCode (commit count): $VERSION_CODE"
+          echo "ZipURL: $ZIP_URL"
+
+          git clone --depth=1 --branch pages https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} pages
+          cd pages
+
+          cat > sui_zygisk.json <<EOF
+          {
+            "versionCode": $VERSION_CODE,
+            "version": "$VERSION",
+            "zipUrl": "$ZIP_URL",
+            "changelog": "https://raw.githubusercontent.com/RikkaApps/Sui/master/template/magisk_module/CHANGELOG.md"
+          }
+          EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add sui_zygisk.json
+          if ! git diff --staged --quiet; then
+            git commit -m "Update sui_zygisk.json (versionCode=$VERSION_CODE)"
+            git push
+          else
+            echo "sui_zygisk.json remains unchanged, skip"
+          fi
