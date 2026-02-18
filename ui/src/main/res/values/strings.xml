@@ -44,4 +44,9 @@
     <string name="about_button_ok">OK</string>
     <string name="action_batch_unconfigured">Modify default value</string>
     <string name="action_filter_shizuku_apps">Show only Shizuku apps</string>
+    <string name="about_version">v%1$s</string>
+    <string name="about_license_part1">This project is licensed under GPLv3 and open source on </string>
+    <string name="about_license_part2">GitHub</string>
+    <string name="about_license_part3">.\nCopyright (c) 2021-2026 Sui Contributors</string>
+    <string name="about_contributors">Contributors: Rikka, yujincheng08, Kr328, yangFenTuoZi, XiaoTong</string>
 </resources>

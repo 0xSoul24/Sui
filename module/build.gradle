@@ -172,14 +172,12 @@ androidComponents {
 
         tasks.register("flash${variantCapped}", Exec) {
             dependsOn("push${variantCapped}")
-            commandLine "adb", "shell", "su", "-c",
-                    "magisk --install-module /data/local/tmp/${zipName}"
+            commandLine "adb", "shell", "su -c 'magisk --install-module /data/local/tmp/${zipName}'"
         }
 
         tasks.register("flashWithKsud${variantCapped}", Exec) {
             dependsOn("push${variantCapped}")
-            commandLine "adb", "shell", "su", "-c",
-                    "ksud module install /data/local/tmp/${zipName}"
+            commandLine "adb", "shell", "su -c 'ksud module install /data/local/tmp/${zipName}'"
         }
 
         tasks.register("flashAndReboot${variantCapped}", Exec) {

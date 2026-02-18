@@ -18,7 +18,15 @@
  */
 package rikka.sui.management
 
+import android.graphics.Typeface
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.method.LinkMovementMethod
+import android.text.style.ForegroundColorSpan
+import android.text.style.RelativeSizeSpan
+import android.text.style.StyleSpan
+import android.text.style.URLSpan
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.Menu
@@ -27,6 +35,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.Animation
+import androidx.annotation.AttrRes
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
@@ -280,8 +289,8 @@ class ManagementFragment : AppFragment() {
 
         viewModel.batchUpdate(targetMode, requireContext())
     }
-    private fun resolveThemeColor(@androidx.annotation.AttrRes attrRes: Int): Int {
-        val typedValue = android.util.TypedValue()
+    private fun resolveThemeColor(@AttrRes attrRes: Int): Int {
+        val typedValue = TypedValue()
         requireContext().theme.resolveAttribute(attrRes, typedValue, true)
         return typedValue.data
     }
@@ -292,21 +301,23 @@ class ManagementFragment : AppFragment() {
         } catch (e: Exception) {
             "Unknown"
         }
-        val message = android.text.SpannableStringBuilder().apply {
+        val message = SpannableStringBuilder().apply {
             val title = "Sui\n"
             append(title)
-            val typedValue = android.util.TypedValue()
+            val typedValue = TypedValue()
             requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
-            setSpan(android.text.style.RelativeSizeSpan(1.2f), 0, title.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, title.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            setSpan(android.text.style.ForegroundColorSpan(typedValue.data), 0, title.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            append("v$versionName\n\n")
-            append("本项目遵循 GPLv3 在 ")
+            setSpan(RelativeSizeSpan(1.2f), 0, title.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(StyleSpan(Typeface.BOLD), 0, title.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            setSpan(ForegroundColorSpan(typedValue.data), 0, title.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            append(getString(R.string.about_version, versionName))
+            append("\n\n")
+            append(getString(R.string.about_license_part1))
             val startGithub = length
-            append("GitHub")
-            setSpan(android.text.style.URLSpan("https://github.com/XiaoTong6666/Sui"), startGithub, length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            append(" 开源 \nCopyright (c) 2021-2026 Sui Contributors\n\n")
-            append("贡献者: Rikka, yujincheng08, Kr328, yangFenTuoZi, XiaoTong")
+            append(getString(R.string.about_license_part2))
+            setSpan(URLSpan("https://github.com/XiaoTong6666/Sui"), startGithub, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            append(getString(R.string.about_license_part3))
+            append("\n\n")
+            append(getString(R.string.about_contributors))
         }
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
@@ -314,7 +325,7 @@ class ManagementFragment : AppFragment() {
             .setPositiveButton(R.string.about_button_ok, null)
             .show()
             .findViewById<android.widget.TextView>(android.R.id.message)
-            ?.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+            ?.movementMethod = LinkMovementMethod.getInstance()
     }
 
     override fun onDestroyView() {
