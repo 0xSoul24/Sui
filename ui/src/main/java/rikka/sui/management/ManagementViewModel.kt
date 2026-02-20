@@ -26,9 +26,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import rikka.lifecycle.Resource
-import rikka.lifecycle.Status
 import rikka.sui.model.AppInfo
 import rikka.sui.util.AppInfoComparator
 import rikka.sui.util.AppLabelCache
@@ -54,15 +56,6 @@ class ManagementViewModel : ViewModel() {
         appList.postValue(Resource.success(sortedList))
     }
 
-    fun invalidateList() {
-        if (appList.value?.status != Status.SUCCESS) {
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            displayList()
-        }
-    }
     fun filter(query: String?) {
         currentQuery = query
         viewModelScope.launch(Dispatchers.IO) {
@@ -110,11 +103,26 @@ class ManagementViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             val pm = context.packageManager
             try {
-                val result = BridgeServiceClient.getApplications(-1, showOnlyShizukuApps).apply {
-                    forEach {
-                        val appInfo = it.packageInfo.applicationInfo
-                        if (appInfo != null) {
-                            it.label = AppLabelCache.loadLabel(pm, appInfo)
+                val result = BridgeServiceClient.getApplications(-1, showOnlyShizukuApps)
+                if (result.isNotEmpty()) {
+                    val batchSize = Runtime.getRuntime().availableProcessors().let { cores ->
+                        when {
+                            cores <= 2 -> 10
+                            cores <= 4 -> 20
+                            else -> 30
+                        }
+                    }
+                    coroutineScope {
+                        result.chunked(batchSize).forEach { batch ->
+                            batch.mapNotNull { app ->
+                                if (app?.packageInfo?.applicationInfo != null) {
+                                    async {
+                                        app.label = AppLabelCache.loadLabel(pm, app.packageInfo.applicationInfo!!)
+                                    }
+                                } else {
+                                    null
+                                }
+                            }.awaitAll()
                         }
                     }
                 }
@@ -124,6 +132,7 @@ class ManagementViewModel : ViewModel() {
 
                 displayList()
             } catch (e: CancellationException) {
+                throw e
             } catch (e: Throwable) {
                 android.util.Log.e("SuiViewModel", "THE SMOKING GUN! The final error is:", e)
                 appList.postValue(Resource.error(e, null))
