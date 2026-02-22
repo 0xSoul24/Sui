@@ -27,6 +27,7 @@ import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import java.lang.annotation.Retention;
 import java.util.BitSet;
+import java.util.Objects;
 
 public class TextUtilsCompat {
 
@@ -126,7 +127,7 @@ public class TextUtilsCompat {
         boolean forceSingleLine = ((flags & SAFE_STRING_FLAG_SINGLE_LINE) != 0);
         boolean trim = ((flags & SAFE_STRING_FLAG_TRIM) != 0);
 
-        Preconditions.checkNotNull(unclean);
+        Objects.requireNonNull(unclean);
         Preconditions.checkArgumentNonnegative(maxCharactersToConsider);
         Preconditions.checkArgumentNonNegative(ellipsizeDip, "ellipsizeDip");
         Preconditions.checkFlagsArgument(
@@ -152,8 +153,15 @@ public class TextUtilsCompat {
         // - Removes leading white space
         // - Removes all trailing white space beside a single space
         // - Collapses double white space
-        StringWithRemovedChars gettingCleaned =
-                new StringWithRemovedChars(Html.fromHtml(shortString).toString());
+        String htmlStr;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            htmlStr = Html.fromHtml(shortString, Html.FROM_HTML_MODE_LEGACY).toString();
+        } else {
+            @SuppressWarnings("deprecation")
+            String legacyHtml = Html.fromHtml(shortString).toString();
+            htmlStr = legacyHtml;
+        }
+        StringWithRemovedChars gettingCleaned = new StringWithRemovedChars(htmlStr);
 
         int firstNonWhiteSpace = -1;
         int firstTrailingWhiteSpace = -1;
