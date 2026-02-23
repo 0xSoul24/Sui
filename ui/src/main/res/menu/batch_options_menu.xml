@@ -19,16 +19,18 @@
   -->
 
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:id="@+id/batch_allow"
-        android:title="@string/permission_allowed" />
-    <item
-        android:id="@+id/batch_deny"
-        android:title="@string/permission_denied" />
-    <item
-        android:id="@+id/batch_hidden"
-        android:title="@string/permission_hidden" />
-    <item
-        android:id="@+id/batch_ask"
-        android:title="@string/permission_ask" />
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/batch_allow"
+            android:title="@string/permission_allowed" />
+        <item
+            android:id="@+id/batch_deny"
+            android:title="@string/permission_denied" />
+        <item
+            android:id="@+id/batch_hidden"
+            android:title="@string/permission_hidden" />
+        <item
+            android:id="@+id/batch_ask"
+            android:title="@string/permission_ask" />
+    </group>
 </menu>

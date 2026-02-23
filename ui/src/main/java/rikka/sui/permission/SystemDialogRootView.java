@@ -103,7 +103,11 @@ public class SystemDialogRootView extends FrameLayout {
 
         try {
             try {
-                getContext().registerReceiver(receiver, intentFilter);
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    getContext().registerReceiver(receiver, intentFilter, android.content.Context.RECEIVER_EXPORTED);
+                } else {
+                    getContext().registerReceiver(receiver, intentFilter);
+                }
                 LOGGER.i("registerReceiver android.intent.action.CLOSE_SYSTEM_DIALOGS");
             } catch (Exception e) {
                 LOGGER.w(e, "registerReceiver android.intent.action.CLOSE_SYSTEM_DIALOGS");

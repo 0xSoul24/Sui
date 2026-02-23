@@ -20,4 +20,15 @@
 
 <resources>
     <dimen name="expected_app_icon_max_size">40dp</dimen>
+
+    <dimen name="miuix_pull_to_refresh_circle_size">20dp</dimen>
+    <dimen name="miuix_pull_to_refresh_safe_padding">12dp</dimen>
+
+    <dimen name="miuix_bottom_sheet_dismiss_threshold">150dp</dimen>
+    <dimen name="miuix_bottom_sheet_velocity_threshold">800dp</dimen>
+    <item name="miuix_bounce_stiffness" type="dimen" format="float">150.0</item>
+
+    <dimen name="miuix_drag_handle_default_width">45dp</dimen>
+    <dimen name="miuix_drag_handle_pressed_width">55dp</dimen>
+    <dimen name="miuix_drag_handle_default_height">4dp</dimen>
 </resources>

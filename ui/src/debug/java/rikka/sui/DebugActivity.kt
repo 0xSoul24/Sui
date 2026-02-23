@@ -24,6 +24,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.ViewCompat
 import rikka.sui.management.ManagementFragment
 
 class DebugActivity : AppCompatActivity() {
@@ -34,12 +35,20 @@ class DebugActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_Sui)
         com.google.android.material.color.DynamicColors
             .applyToActivityIfAvailable(this)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.appbar_fragment_activity)
+
+        val toolbarContainer: android.view.ViewGroup = findViewById(R.id.toolbar_container)
+        ViewCompat.setOnApplyWindowInsetsListener(toolbarContainer) { v, insets ->
+            val statusBarHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).top
+            v.setPadding(v.paddingLeft, statusBarHeight, v.paddingRight, v.paddingBottom)
+            insets
+        }
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)

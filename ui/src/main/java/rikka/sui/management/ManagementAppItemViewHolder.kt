@@ -20,39 +20,50 @@ package rikka.sui.management
 
 import android.content.res.ColorStateList
 import android.graphics.Typeface
+import android.os.SystemClock
 import android.util.Log
 import android.util.TypedValue
+import android.view.ContextThemeWrapper
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.AdapterView.OnItemSelectedListener
-import android.widget.ArrayAdapter
+import android.widget.TextView
+import androidx.appcompat.widget.PopupMenu
+import androidx.core.view.get
+import androidx.core.view.size
 import kotlinx.coroutines.Job
 import rikka.recyclerview.BaseViewHolder
+import rikka.sui.R
 import rikka.sui.databinding.ManagementAppItemBinding
 import rikka.sui.model.AppInfo
 import rikka.sui.server.SuiConfig
 import rikka.sui.util.AppIconCache
-import rikka.sui.util.AppLabelCache
 import rikka.sui.util.BridgeServiceClient
+import rikka.sui.util.MiuixPopupDimOverlay
+import rikka.sui.util.MiuixPressHelper
+import rikka.sui.util.MiuixSmoothCardDrawable
+import rikka.sui.util.MiuixSquircleProvider
 import rikka.sui.util.UserHandleCompat
+import rikka.sui.util.applyMiuixPopupStyle
+import rikka.sui.util.colorCheckedItemsMiuixBlue
 
 class ManagementAppItemViewHolder(
     private val binding: ManagementAppItemBinding,
-    private val optionsAdapter: ArrayAdapter<CharSequence>,
 ) : BaseViewHolder<AppInfo>(binding.root),
     View.OnClickListener {
     companion object {
-        fun newCreator(optionsAdapter: ArrayAdapter<CharSequence>) = Creator<AppInfo> { inflater: LayoutInflater, parent: ViewGroup? ->
+        fun Creator() = Creator<AppInfo> { inflater: LayoutInflater, parent: ViewGroup? ->
             ManagementAppItemViewHolder(
                 ManagementAppItemBinding.inflate(inflater, parent, false),
-                optionsAdapter,
             )
         }
 
         private val SANS_SERIF = Typeface.create("sans-serif", Typeface.NORMAL)
         private val SANS_SERIF_MEDIUM = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+
+        private var lastMenuClickTime = 0L
+        private var lastPopupDismissTime = 0L
     }
 
     private inline val packageName get() = data.packageInfo.packageName
@@ -61,46 +72,15 @@ class ManagementAppItemViewHolder(
 
     private var loadIconJob: Job? = null
     private var suppressSelectionCallback = false
+    private var activePopupMenu: PopupMenu? = null
 
     private val icon get() = binding.icon
     private val name get() = binding.title
     private val pkg get() = binding.summary
-    private val spinner get() = binding.button1
+    private val statusText get() = binding.button1 as TextView
 
     private val textColorSecondary: ColorStateList
     private val textColorPrimary: ColorStateList
-
-    private val onItemSelectedListener: OnItemSelectedListener =
-        object : OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>,
-                view: View,
-                position: Int,
-                id: Long,
-            ) {
-                if (suppressSelectionCallback) return
-                val newValue =
-                    when (position) {
-                        0 -> SuiConfig.FLAG_ALLOWED
-                        1 -> SuiConfig.FLAG_DENIED
-                        2 -> SuiConfig.FLAG_HIDDEN
-                        else -> 0
-                    }
-                try {
-                    BridgeServiceClient
-                        .getService()
-                        .updateFlagsForUid(data.packageInfo.applicationInfo!!.uid, SuiConfig.MASK_PERMISSION, newValue)
-                } catch (e: Throwable) {
-                    Log.e("SuiSettings", "updateFlagsForUid", e)
-                    return
-                }
-                data.flags = data.flags and SuiConfig.MASK_PERMISSION.inv() or newValue
-                setSpinnerSelection(position)
-                syncViewStateForFlags()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
 
     private val iconSize: Int
 
@@ -112,13 +92,96 @@ class ManagementAppItemViewHolder(
         context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
         textColorPrimary = context.getColorStateList(typedValue.resourceId)
 
-        itemView.setOnClickListener(this)
+        val normalColor = context.getColor(R.color.miuix_card_normal)
+        this.itemView.background = MiuixSmoothCardDrawable.createSelectorWithOverlay(
+            context,
+            normalColor,
+        )
 
-        this.itemView.setOnClickListener { spinner.performClick() }
-        spinner.adapter = optionsAdapter
-        spinner.onItemSelectedListener = onItemSelectedListener
+        this.itemView.setOnClickListener { showPopupMenu() }
+        this.itemView.setOnTouchListener(MiuixPressHelper())
 
         iconSize = context.resources.getDimensionPixelSize(rikka.sui.R.dimen.expected_app_icon_max_size)
+
+        icon.outlineProvider = MiuixSquircleProvider(10.5f)
+        icon.clipToOutline = true
+    }
+
+    private fun showPopupMenu() {
+        val currentTime = SystemClock.elapsedRealtime()
+        if (currentTime - lastPopupDismissTime < 200 || currentTime - lastMenuClickTime < 300) {
+            return
+        }
+        lastMenuClickTime = currentTime
+
+        if (activePopupMenu != null) {
+            activePopupMenu?.dismiss()
+            activePopupMenu = null
+            return
+        }
+
+        val contextWrapper = ContextThemeWrapper(context, R.style.Theme_Sui_PopupMenu)
+        val popupMenu = PopupMenu(contextWrapper, statusText, Gravity.END)
+        activePopupMenu = popupMenu
+        popupMenu.inflate(R.menu.app_item_options_menu)
+
+        statusText.isActivated = true
+
+        var activityContext = itemView.context
+        while (activityContext is android.content.ContextWrapper) {
+            if (activityContext is android.app.Activity) break
+            activityContext = activityContext.baseContext
+        }
+        if (activityContext is android.app.Activity) {
+            MiuixPopupDimOverlay.show(activityContext)
+        }
+
+        popupMenu.setOnDismissListener {
+            statusText.isActivated = false
+            MiuixPopupDimOverlay.hide()
+            lastPopupDismissTime = SystemClock.elapsedRealtime()
+            if (activePopupMenu === popupMenu) {
+                activePopupMenu = null
+            }
+        }
+
+        val explicitFlags = data.flags and SuiConfig.MASK_PERMISSION
+        val currentSelection = when {
+            explicitFlags and SuiConfig.FLAG_ALLOWED != 0 -> 0
+            explicitFlags and SuiConfig.FLAG_DENIED != 0 -> 1
+            explicitFlags and SuiConfig.FLAG_HIDDEN != 0 -> 2
+            else -> 3
+        }
+
+        val menu = popupMenu.menu
+        if (currentSelection < menu.size) {
+            menu[currentSelection].isChecked = true
+        }
+
+        popupMenu.setOnMenuItemClickListener { item ->
+            val newValue = when (item.itemId) {
+                R.id.action_allow -> SuiConfig.FLAG_ALLOWED
+                R.id.action_deny -> SuiConfig.FLAG_DENIED
+                R.id.action_hidden -> SuiConfig.FLAG_HIDDEN
+                R.id.action_default -> 0
+                else -> return@setOnMenuItemClickListener false
+            }
+
+            try {
+                BridgeServiceClient
+                    .getService()
+                    .updateFlagsForUid(uid, SuiConfig.MASK_PERMISSION, newValue)
+            } catch (e: Throwable) {
+                Log.e("SuiSettings", "updateFlagsForUid", e)
+            }
+
+            data.flags = data.flags and SuiConfig.MASK_PERMISSION.inv() or newValue
+            syncViewStateForFlags()
+            true
+        }
+
+        popupMenu.colorCheckedItemsMiuixBlue()
+        popupMenu.applyMiuixPopupStyle()
     }
 
     override fun onClick(v: View) {
@@ -169,32 +232,43 @@ class ManagementAppItemViewHolder(
             binding.title.typeface = SANS_SERIF_MEDIUM
         } else if (denied) {
             binding.title.setTextColor(textColorSecondary)
-            binding.title.typeface = SANS_SERIF
+            binding.title.typeface = SANS_SERIF_MEDIUM
         } else if (hidden) {
             binding.title.setTextColor(textColorSecondary)
-            binding.title.typeface = SANS_SERIF
+            binding.title.typeface = SANS_SERIF_MEDIUM
         } else {
             binding.title.setTextColor(textColorSecondary)
-            binding.title.typeface = SANS_SERIF
+            binding.title.typeface = SANS_SERIF_MEDIUM
         }
 
         val explicitAllowed = explicitFlags and SuiConfig.FLAG_ALLOWED != 0
         val explicitDenied = explicitFlags and SuiConfig.FLAG_DENIED != 0
         val explicitHidden = explicitFlags and SuiConfig.FLAG_HIDDEN != 0
-        if (explicitAllowed) {
-            setSpinnerSelection(0)
-        } else if (explicitDenied) {
-            setSpinnerSelection(1)
-        } else if (explicitHidden) {
-            setSpinnerSelection(2)
-        } else {
-            setSpinnerSelection(3)
-        }
-    }
 
-    private fun setSpinnerSelection(position: Int) {
-        suppressSelectionCallback = true
-        spinner.setSelection(position, false)
-        suppressSelectionCallback = false
+        val textRes = when {
+            explicitAllowed -> R.string.permission_allowed
+            explicitDenied -> R.string.permission_denied
+            explicitHidden -> R.string.permission_hidden
+            else -> R.string.permission_default
+        }
+
+        if (explicitAllowed) {
+            val typedValue = TypedValue()
+            context.theme.resolveAttribute(androidx.appcompat.R.attr.colorAccent, typedValue, true)
+            statusText.setTextColor(typedValue.data)
+        } else if (explicitDenied) {
+            val isNight = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_YES != 0
+            statusText.setTextColor(if (isNight) 0xFFFF8A80.toInt() else 0xFFFF5252.toInt())
+        } else if (explicitHidden) {
+            val typedValue = TypedValue()
+            context.theme.resolveAttribute(android.R.attr.colorForeground, typedValue, true)
+            statusText.setTextColor(typedValue.data)
+        } else {
+            val typedValue = TypedValue()
+            context.theme.resolveAttribute(android.R.attr.textColorTertiary, typedValue, true)
+            statusText.setTextColor(context.getColorStateList(typedValue.resourceId))
+        }
+
+        statusText.setText(textRes)
     }
 }

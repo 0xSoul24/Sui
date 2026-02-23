@@ -20,5 +20,5 @@
 
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:alpha="?android:disabledAlpha" android:color="?android:textColorSecondary" android:state_enabled="false" />
-    <item android:color="?android:colorAccent" />
+    <item android:color="?android:attr/textColorPrimary" />
 </selector>

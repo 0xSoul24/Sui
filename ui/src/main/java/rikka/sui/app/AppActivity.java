@@ -30,7 +30,8 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import com.google.android.material.appbar.AppBarLayout;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import rikka.sui.R;
 
 public class AppActivity extends AppCompatActivity {
@@ -39,7 +40,7 @@ public class AppActivity extends AppCompatActivity {
     private final Resources resources;
 
     private ViewGroup rootView;
-    private AppBarLayout toolbarContainer;
+    private ViewGroup toolbarContainer;
 
     public AppActivity(Application application, Resources resources) {
         this.application = application;
@@ -69,7 +70,7 @@ public class AppActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        setTheme(R.style.Theme_Material3_DayNight_NoActionBar);
+        setTheme(R.style.Theme_Sui);
         super.onCreate(savedInstanceState);
 
         try {
@@ -84,6 +85,13 @@ public class AppActivity extends AppCompatActivity {
             } else {
                 android.util.Log.e("Sui", "Toolbar not found in appbar_fragment_activity layout");
             }
+
+            ViewCompat.setOnApplyWindowInsetsListener(toolbarContainer, (v, insets) -> {
+                int statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
+                v.setPadding(v.getPaddingLeft(), statusBarHeight, v.getPaddingRight(), v.getPaddingBottom());
+                return insets;
+            });
+
             EdgeToEdge.enable(this);
         } catch (Throwable t) {
             android.util.Log.e("Sui", "Fatal error in AppActivity.onCreate", t);
@@ -93,7 +101,6 @@ public class AppActivity extends AppCompatActivity {
     @Override
     public void setContentView(int layoutResID) {
         getLayoutInflater().inflate(layoutResID, rootView, true);
-        rootView.bringChildToFront(toolbarContainer);
     }
 
     public void setContentView(@Nullable View view) {

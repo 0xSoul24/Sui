@@ -39,6 +39,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import dev.rikka.tools.refine.Refine;
 import java.util.Objects;
 import rikka.html.text.HtmlCompat;
@@ -50,7 +51,9 @@ import rikka.sui.ktx.WindowKt;
 import rikka.sui.util.AppLabel;
 import rikka.sui.util.BridgeServiceClient;
 import rikka.sui.util.Logger;
+import rikka.sui.util.MiuixSmoothCardDrawable;
 import rikka.sui.util.UserHandleCompat;
+import rikka.sui.widget.MiuixBottomSheetLayout;
 
 public class ConfirmationDialog {
 
@@ -61,10 +64,29 @@ public class ConfirmationDialog {
     private final Resources resources;
     private final LayoutInflater layoutInflater;
 
+    @SuppressWarnings("deprecation")
     public ConfirmationDialog(Application application, Resources resources) {
-        this.context = application;
+        Configuration hostConfig = application.getResources().getConfiguration();
+        resources.updateConfiguration(hostConfig, application.getResources().getDisplayMetrics());
+
+        boolean isNight = (hostConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        int themeRes =
+                isNight ? android.R.style.Theme_DeviceDefault_Dialog : android.R.style.Theme_DeviceDefault_Light_Dialog;
+
+        this.context = new android.view.ContextThemeWrapper(application, themeRes) {
+            @Override
+            public Resources getResources() {
+                return resources;
+            }
+
+            @Override
+            public ClassLoader getClassLoader() {
+                return ConfirmationDialog.class.getClassLoader();
+            }
+        };
+
         this.resources = resources;
-        this.layoutInflater = LayoutInflater.from(application);
+        this.layoutInflater = LayoutInflater.from(this.context);
     }
 
     public void show(int requestUid, int requestPid, String requestPackageName, int requestCode) {
@@ -84,19 +106,18 @@ public class ConfirmationDialog {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void showInternal(int requestUid, int requestPid, String requestPackageName, int requestCode) {
-        Resources.Theme theme = context.getTheme();
-        boolean isNight = (context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_YES) != 0;
-        if (isNight) {
-            theme.applyStyle(android.R.style.Theme_DeviceDefault_Dialog, true);
-        } else {
-            theme.applyStyle(android.R.style.Theme_DeviceDefault_Light_Dialog, true);
-        }
+        boolean isNight = (context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+                == Configuration.UI_MODE_NIGHT_YES;
+
+        MiuixBottomSheetLayout sheetLayout = new MiuixBottomSheetLayout(context);
 
         SystemDialogRootView root = new SystemDialogRootView(context) {
 
             @Override
             public boolean onBackPressed() {
+                sheetLayout.dismiss();
                 return false;
             }
 
@@ -105,10 +126,56 @@ public class ConfirmationDialog {
                 setResult(requestUid, requestPid, requestCode, false, true);
             }
         };
+        root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 
-        View view = layoutInflater.inflate(resources.getLayout(R.layout.confirmation_dialog), root, false);
+        View dimView = new View(context);
+        int dimColor = isNight ? 0x99000000 : 0x4D000000;
+        dimView.setBackgroundColor(dimColor);
+        dimView.setAlpha(0f);
+        root.addView(
+                dimView,
+                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        root.addView(
+                sheetLayout,
+                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        View view = layoutInflater.inflate(resources.getLayout(R.layout.confirmation_dialog), sheetLayout, false);
         ConfirmationDialogBinding binding = ConfirmationDialogBinding.bind(view);
-        root.addView(binding.getRoot());
+
+        FrameLayout.LayoutParams lp =
+                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.BOTTOM;
+        sheetLayout.addView(binding.getRoot(), lp);
+
+        sheetLayout.setOnDimAlphaChange(alpha -> {
+            dimView.setAlpha(alpha);
+            return kotlin.Unit.INSTANCE;
+        });
+        sheetLayout.setOnDimAlphaAnimate((alpha, duration) -> {
+            dimView.animate()
+                    .alpha(alpha)
+                    .setDuration(duration)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
+                    .start();
+            return kotlin.Unit.INSTANCE;
+        });
+        sheetLayout.setOnDismissRequest(() -> {
+            root.dismiss();
+            return kotlin.Unit.INSTANCE;
+        });
+
+        root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                sheetLayout.show();
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {}
+        });
 
         String label = requestPackageName;
         int userId = UserHandleCompat.getUserId(requestUid);
@@ -122,7 +189,7 @@ public class ConfirmationDialog {
             LOGGER.e("getApplicationInfoAsUser");
         }
 
-        binding.icon.setImageDrawable(resources.getDrawable(R.drawable.ic_su_24, theme));
+        binding.icon.setImageDrawable(resources.getDrawable(R.drawable.ic_su_24, context.getTheme()));
         binding.title.setText(HtmlCompat.fromHtml(String.format(
                 resources.getString(R.string.permission_warning_template),
                 label,
@@ -131,40 +198,74 @@ public class ConfirmationDialog {
         binding.button2.setText(resources.getString(R.string.grant_dialog_button_allow_one_time));
         binding.button3.setText(resources.getString(R.string.grant_dialog_button_deny_and_dont_ask_again));
 
-        ColorStateList buttonTextColor = resources.getColorStateList(R.color.confirmation_dialog_button_text, theme);
+        ColorStateList buttonTextColor =
+                resources.getColorStateList(R.color.confirmation_dialog_button_text, context.getTheme());
         binding.button1.setTextColor(buttonTextColor);
         binding.button2.setTextColor(buttonTextColor);
         binding.button3.setTextColor(buttonTextColor);
 
         binding.button1.setOnClickListener(v -> {
+            if (sheetLayout.isDismissing()) return;
             setResult(requestUid, requestPid, requestCode, true, false);
-            root.dismiss();
+            sheetLayout.dismiss();
         });
         binding.button2.setOnClickListener(v -> {
+            if (sheetLayout.isDismissing()) return;
             setResult(requestUid, requestPid, requestCode, true, true);
-            root.dismiss();
+            sheetLayout.dismiss();
         });
         binding.button3.setOnClickListener(v -> {
+            if (sheetLayout.isDismissing()) return;
             setResult(requestUid, requestPid, requestCode, false, false);
-            root.dismiss();
+            sheetLayout.dismiss();
         });
 
         TextViewKt.applyCountdown(binding.button1, 1, null, 0);
         TextViewKt.applyCountdown(binding.button2, 1, null, 0);
         TextViewKt.applyCountdown(binding.button3, 1, null, 0);
 
-        binding.getRoot().setBackground(resources.getDrawable(R.drawable.confirmation_dialog_background, theme));
-        binding.getRoot().setClipToOutline(true);
+        float density = context.getResources().getDisplayMetrics().density;
+        float dynamicRadiusPx =
+                rikka.sui.util.MiuixSquircleUtils.INSTANCE.getBottomCornerRadius(context) + 12f * density;
+        int sheetColor = resources.getColor(R.color.miuix_bottom_sheet_bg_color, context.getTheme());
+        binding.getRoot().setBackground(new MiuixSmoothCardDrawable(dynamicRadiusPx, sheetColor, false));
+
+        int btnColor =
+                isNight ? android.graphics.Color.parseColor("#434343") : android.graphics.Color.parseColor("#F0F0F0");
+        float btnRadiusPx = 16f * density;
+        binding.button1.setBackground(
+                MiuixSmoothCardDrawable.Companion.createSelectorWithOverlay(context, btnColor, 16f, false));
+        binding.button2.setBackground(
+                MiuixSmoothCardDrawable.Companion.createSelectorWithOverlay(context, btnColor, 16f, false));
+        binding.button3.setBackground(
+                MiuixSmoothCardDrawable.Companion.createSelectorWithOverlay(context, btnColor, 16f, false));
+
+        float dialogDiagonalOffset = dynamicRadiusPx * 0.2928f;
+        float buttonDiagonalOffset = btnRadiusPx * 0.2928f;
+        float bottomPaddingOffset = Math.max(0f, dialogDiagonalOffset - buttonDiagonalOffset);
+
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
+            androidx.core.graphics.Insets navBars =
+                    insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars());
+
+            float basePadding = navBars.bottom > 0 ? (32f * density) : (16f * density);
+            int extraPadding = (int) Math.max(0, navBars.bottom - basePadding);
+
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), (int)
+                    (basePadding + bottomPaddingOffset + extraPadding));
+            return insets;
+        });
 
         WindowManager.LayoutParams attr = new WindowManager.LayoutParams();
         attr.width = ViewGroup.LayoutParams.MATCH_PARENT;
-        attr.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        attr.flags = WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+        attr.height = ViewGroup.LayoutParams.MATCH_PARENT;
+        attr.flags =
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            attr.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+        }
         attr.type = WindowManager.LayoutParams.TYPE_SYSTEM_DIALOG;
         attr.token = TOKEN;
-        attr.gravity = Gravity.CENTER;
-        attr.windowAnimations = android.R.style.Animation_Dialog;
-        attr.dimAmount = 0.32f;
         attr.format = PixelFormat.TRANSLUCENT;
         WindowKt.setPrivateFlags(
                 attr, WindowKt.getPrivateFlags(attr) | WindowKt.getSYSTEM_FLAG_HIDE_NON_SYSTEM_OVERLAY_WINDOWS());

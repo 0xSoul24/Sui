@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   ~ This file is part of Sui.
   ~
@@ -16,9 +17,19 @@
   ~
   ~ Copyright (c) 2026 Sui Contributors
   -->
-
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:height="24dp" android:tint="#000000" android:viewportHeight="24" android:viewportWidth="24" android:width="24dp">
-      
-    <path android:fillColor="@android:color/white" android:pathData="M12,8c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,10c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2zM12,16c-1.1,0 -2,0.9 -2,2s0.9,2 2,2 2,-0.9 2,-2 -0.9,-2 -2,-2z"/>
-    
-</vector>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/action_allow"
+            android:title="@string/permission_allowed" />
+        <item
+            android:id="@+id/action_deny"
+            android:title="@string/permission_denied" />
+        <item
+            android:id="@+id/action_hidden"
+            android:title="@string/permission_hidden" />
+        <item
+            android:id="@+id/action_default"
+            android:title="@string/permission_default" />
+    </group>
+</menu>

@@ -35,7 +35,6 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.appiconloader.AppIconLoader
-import rikka.sui.R
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
@@ -93,6 +92,7 @@ object AppIconCache : CoroutineScope {
         if (cachedBitmap != null) {
             return cachedBitmap
         }
+
         val loader = appIconLoaders.getOrPut(size) {
             AppIconLoader(
                 size,
@@ -103,6 +103,7 @@ object AppIconCache : CoroutineScope {
             )
         }
         val bitmap = loader.loadIcon(info, false)
+
         put(info.packageName, userId, size, bitmap)
         return bitmap
     }

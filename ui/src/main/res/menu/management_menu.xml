@@ -30,7 +30,7 @@
         app:iconTint="?attr/colorControlNormal"/>
     <item
         android:id="@+id/action_overflow"
-        android:icon="@drawable/ic_more_vert_24dp"
+        android:icon="@drawable/ic_miuix_more_circle"
         android:title="More"
         app:showAsAction="always"
         app:iconTint="?attr/colorControlNormal"/>
