@@ -99,16 +99,5 @@ class ManagementAdapter(
     override fun getPopupText(
         view: View,
         position: Int,
-    ): CharSequence = try {
-        val appInfo = getItemAt<AppInfo>(position)
-        val appName = appInfo.label
-
-        if (appName.isNullOrEmpty()) {
-            " "
-        } else {
-            appName.substring(0, 1).uppercase()
-        }
-    } catch (e: Exception) {
-        ""
-    }
+    ): CharSequence = ""
 }

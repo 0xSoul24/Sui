@@ -31,4 +31,10 @@
     <dimen name="miuix_drag_handle_default_width">45dp</dimen>
     <dimen name="miuix_drag_handle_pressed_width">55dp</dimen>
     <dimen name="miuix_drag_handle_default_height">4dp</dimen>
+
+    <dimen name="afs_min_touch_target_size">22dp</dimen>
+    
+    <dimen name="afs_md2_popup_text_size">0sp</dimen>
+    <dimen name="afs_md2_popup_min_height">0dp</dimen>
+    <dimen name="afs_md2_popup_min_width">0dp</dimen>
 </resources>
