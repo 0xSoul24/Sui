@@ -48,8 +48,21 @@ public class SuiConfigManager extends ConfigManager {
 
     private final SuiConfig config;
 
+    public static final int UID_GLOBAL_SETTINGS = -2;
+
     public SuiConfigManager() {
         this.config = load();
+    }
+
+    public int getGlobalSettings() {
+        synchronized (this) {
+            SuiConfig.PackageEntry entry = findLocked(UID_GLOBAL_SETTINGS);
+            return entry != null ? entry.flags : 0;
+        }
+    }
+
+    public void setGlobalSettings(int flags) {
+        update(UID_GLOBAL_SETTINGS, 0xFFFFFFFF, flags);
     }
 
     private SuiConfig.PackageEntry findLocked(int uid) {

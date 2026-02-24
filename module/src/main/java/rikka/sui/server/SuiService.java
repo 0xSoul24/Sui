@@ -705,6 +705,31 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             }
             return true;
         }
+        if (code == ServerConstants.BINDER_TRANSACTION_getGlobalSettings) {
+            data.enforceInterface(ShizukuApiConstants.BINDER_DESCRIPTOR);
+            try {
+                int settingFlags = configManager.getGlobalSettings();
+                reply.writeNoException();
+                reply.writeInt(settingFlags);
+            } catch (Throwable e) {
+                LOGGER.w(e, "getGlobalSettings");
+                reply.writeException(new RuntimeException("Failed to get global settings", e));
+            }
+            return true;
+        }
+        if (code == ServerConstants.BINDER_TRANSACTION_setGlobalSettings) {
+            data.enforceInterface(ShizukuApiConstants.BINDER_DESCRIPTOR);
+            int settingFlags = data.readInt();
+            try {
+                enforceManagerPermission("setGlobalSettings");
+                configManager.setGlobalSettings(settingFlags);
+                reply.writeNoException();
+            } catch (Throwable e) {
+                LOGGER.w(e, "setGlobalSettings");
+                reply.writeException(new RuntimeException("Failed to set global settings", e));
+            }
+            return true;
+        }
         return super.onTransact(code, data, reply, flags);
     }
 

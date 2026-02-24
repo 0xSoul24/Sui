@@ -35,10 +35,68 @@ public class BridgeServiceClient {
     private static final int BINDER_TRANSACTION_getApplications = 10001;
     private static final int BINDER_TRANSACTION_REQUEST_PINNED_SHORTCUT_FROM_UI = 10005;
     private static final int BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED = 10006;
+    private static final int BINDER_TRANSACTION_setGlobalSettings = 10007;
+    private static final int BINDER_TRANSACTION_getGlobalSettings = 10008;
     private static final int RETRY_MAX = 5;
     private static final long RETRY_DELAY_MS = 1000;
     private static IBinder binder;
     private static IShizukuService service;
+
+    public static int getGlobalSettings() {
+        android.util.Log.d("SuiBridgeDebug", "Fetching global settings via BINDER_TRANSACTION_getGlobalSettings.");
+        IShizukuService s = getService();
+        if (s == null) {
+            android.util.Log.e("SuiBridgeDebug", "Service is null when fetching global settings.");
+            return 0;
+        }
+
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        try {
+            data.writeInterfaceToken("moe.shizuku.server.IShizukuService");
+            s.asBinder().transact(BINDER_TRANSACTION_getGlobalSettings, data, reply, 0);
+            reply.readException();
+            int flags = reply.readInt();
+            android.util.Log.i("SuiBridgeDebug", "Successfully fetched global settings flags: " + flags);
+            return flags;
+        } catch (RemoteException e) {
+            android.util.Log.e("SuiBridgeDebug", "RemoteException when calling getGlobalSettings via binder", e);
+            return 0;
+        } catch (Throwable e) {
+            android.util.Log.e("SuiBridgeDebug", "Exception when calling getGlobalSettings via binder", e);
+            return 0;
+        } finally {
+            data.recycle();
+            reply.recycle();
+        }
+    }
+
+    public static void setGlobalSettings(int flags) {
+        android.util.Log.d(
+                "SuiBridgeDebug", "Setting global settings via BINDER_TRANSACTION_setGlobalSettings. Flags = " + flags);
+        IShizukuService s = getService();
+        if (s == null) {
+            android.util.Log.e("SuiBridgeDebug", "Service is null when setting global settings.");
+            return;
+        }
+
+        Parcel data = Parcel.obtain();
+        Parcel reply = Parcel.obtain();
+        try {
+            data.writeInterfaceToken("moe.shizuku.server.IShizukuService");
+            data.writeInt(flags);
+            s.asBinder().transact(BINDER_TRANSACTION_setGlobalSettings, data, reply, 0);
+            reply.readException();
+            android.util.Log.i("SuiBridgeDebug", "Successfully set global settings flags: " + flags);
+        } catch (RemoteException e) {
+            android.util.Log.e("SuiBridgeDebug", "RemoteException when calling setGlobalSettings via binder", e);
+        } catch (Throwable e) {
+            android.util.Log.e("SuiBridgeDebug", "Exception when calling setGlobalSettings via binder", e);
+        } finally {
+            data.recycle();
+            reply.recycle();
+        }
+    }
 
     private static final int BRIDGE_TRANSACTION_CODE = ('_' << 24) | ('S' << 16) | ('U' << 8) | 'I';
     private static final String BRIDGE_SERVICE_DESCRIPTOR = "android.app.IActivityManager";

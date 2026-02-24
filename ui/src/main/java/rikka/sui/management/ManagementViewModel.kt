@@ -38,9 +38,14 @@ import rikka.sui.util.BridgeServiceClient
 
 class ManagementViewModel : ViewModel() {
 
+    companion object {
+        const val FLAG_SHOW_ONLY_SHIZUKU_APPS = 1 shl 0
+    }
+
     private val uiDebugMode = false
     private val fullList = ArrayList<AppInfo>()
     var showOnlyShizukuApps = false
+    private var hasLoadedGlobalSettings = false
     val appList = MutableLiveData<Resource<List<AppInfo>>>(null)
     private var currentQuery: String? = null
     private fun displayList() {
@@ -65,6 +70,15 @@ class ManagementViewModel : ViewModel() {
     fun toggleShizukuFilter(enable: Boolean, context: Context) {
         if (showOnlyShizukuApps != enable) {
             showOnlyShizukuApps = enable
+            viewModelScope.launch(Dispatchers.IO) {
+                val currentFlags = BridgeServiceClient.getGlobalSettings()
+                val newFlags = if (enable) {
+                    currentFlags or FLAG_SHOW_ONLY_SHIZUKU_APPS
+                } else {
+                    currentFlags and FLAG_SHOW_ONLY_SHIZUKU_APPS.inv()
+                }
+                BridgeServiceClient.setGlobalSettings(newFlags)
+            }
             reload(context)
         }
     }
@@ -103,6 +117,12 @@ class ManagementViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             val pm = context.packageManager
             try {
+                if (!hasLoadedGlobalSettings) {
+                    val flags = BridgeServiceClient.getGlobalSettings()
+                    showOnlyShizukuApps = (flags and FLAG_SHOW_ONLY_SHIZUKU_APPS) != 0
+                    hasLoadedGlobalSettings = true
+                }
+
                 val result = BridgeServiceClient.getApplications(-1, showOnlyShizukuApps)
                 if (result.isNotEmpty()) {
                     val batchSize = Runtime.getRuntime().availableProcessors().let { cores ->
