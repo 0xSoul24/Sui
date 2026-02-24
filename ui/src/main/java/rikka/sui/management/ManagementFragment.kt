@@ -280,8 +280,8 @@ class ManagementFragment : AppFragment() {
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_filter_shizuku -> {
-                    menuItem.isChecked = !menuItem.isChecked
-                    viewModel.toggleShizukuFilter(menuItem.isChecked, requireContext())
+                    val newState = !viewModel.showOnlyShizukuApps
+                    viewModel.toggleShizukuFilter(newState, requireContext())
                     true
                 }
 

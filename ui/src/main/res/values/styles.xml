@@ -8,6 +8,8 @@
         <item name="overlapAnchor">false</item>
         <item name="android:dropDownVerticalOffset">4dp</item>
         <item name="android:dropDownHorizontalOffset">0dp</item>
+        <item name="android:listPreferredItemPaddingLeft">22dp</item>
+        <item name="android:listPreferredItemPaddingRight">22dp</item>
     </style>
 
     <style name="SuiPopupAnimation">
