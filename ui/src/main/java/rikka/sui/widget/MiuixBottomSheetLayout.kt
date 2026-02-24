@@ -50,8 +50,10 @@ class MiuixBottomSheetLayout @JvmOverloads constructor(
         onDimAlphaChange?.invoke(0f)
         onDimAlphaAnimate?.invoke(1f, 250L)
 
+        sheet?.visibility = View.INVISIBLE
         post {
             sheet?.let {
+                it.visibility = View.VISIBLE
                 it.translationY = it.height.toFloat()
                 ValueAnimator.ofFloat(it.translationY, 0f).apply {
                     duration = 250
