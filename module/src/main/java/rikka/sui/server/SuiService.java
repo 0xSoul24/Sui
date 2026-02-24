@@ -513,19 +513,27 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                             || Refine.<PackageInfoHidden>unsafeCast(pi).overlayTarget != null
                             || (pi.applicationInfo.flags & ApplicationInfo.FLAG_HAS_CODE) == 0) continue;
 
-                    if (onlyShizuku) {
-                        if (pi.requestedPermissions == null) continue;
-                        boolean requested = false;
-                        for (String p : pi.requestedPermissions) {
-                            if ("moe.shizuku.manager.permission.API_V23".equals(p)) {
-                                requested = true;
-                                break;
-                            }
-                        }
-                        if (!requested) continue;
-                    }
-
                     int uid = pi.applicationInfo.uid;
+
+                    if (onlyShizuku) {
+                        boolean explicitlyAllowed = false;
+                        SuiConfig.PackageEntry explicitEntry = configManager.findExplicit(uid);
+                        if (explicitEntry != null && explicitEntry.isAllowed()) {
+                            explicitlyAllowed = true;
+                        }
+
+                        if (!explicitlyAllowed) {
+                            if (pi.requestedPermissions == null) continue;
+                            boolean requested = false;
+                            for (String p : pi.requestedPermissions) {
+                                if ("moe.shizuku.manager.permission.API_V23".equals(p)) {
+                                    requested = true;
+                                    break;
+                                }
+                            }
+                            if (!requested) continue;
+                        }
+                    }
                     int appId = UserHandleCompat.getAppId(uid);
                     if (uid == systemUiUid) continue;
 
