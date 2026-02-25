@@ -55,6 +55,9 @@ namespace SystemServer {
 static jclass mainClass = nullptr;
 static jmethodID my_execTransactMethodID;
 
+static jclass javaBinderClass = nullptr;
+static jmethodID getCallingUidMethodID = nullptr;
+
 static jint startShortcutTransactionCode = -1;
 
 static std::unordered_set<uid_t> hiddenUids;
@@ -120,6 +123,20 @@ static bool installDex(JNIEnv* env, Dex* dexFile) {
         return false;
     }
 
+    jclass binderCls = env->FindClass("android/os/Binder");
+    if (binderCls) {
+        javaBinderClass = (jclass)env->NewGlobalRef(binderCls);
+        getCallingUidMethodID = env->GetStaticMethodID(javaBinderClass, "getCallingUid", "()I");
+        if (!getCallingUidMethodID) {
+            env->ExceptionClear();
+            LOGE("unable to find Binder.getCallingUid");
+        }
+        env->DeleteLocalRef(binderCls);
+    } else {
+        env->ExceptionClear();
+        LOGE("unable to find android.os.Binder class");
+    }
+
     auto args = env->NewObjectArray(0, env->FindClass("java/lang/String"), nullptr);
 
     env->CallStaticVoidMethod(mainClass, mainMethod, args);
@@ -152,23 +169,30 @@ static bool ExecTransact(jboolean* res, JNIEnv* env, jobject obj, va_list args) 
 
     if (code == BridgeService::BRIDGE_TRANSACTION_CODE) {
         static void* libbinder_ndk = dlopen("libbinder_ndk.so", RTLD_NOW);
-        static AIBinder_getCallingUid_t get_uid = nullptr;
-        static AIBinder_getCallingPid_t get_pid = nullptr;
+        static AIBinder_getCallingUid_t get_uid_ndk = nullptr;
 
-        if (libbinder_ndk) {
-            if (!get_uid)
-                get_uid = (AIBinder_getCallingUid_t)dlsym(libbinder_ndk, "AIBinder_getCallingUid");
-            if (!get_pid)
-                get_pid = (AIBinder_getCallingPid_t)dlsym(libbinder_ndk, "AIBinder_getCallingPid");
+        if (libbinder_ndk && !get_uid_ndk) {
+            get_uid_ndk = (AIBinder_getCallingUid_t)dlsym(libbinder_ndk, "AIBinder_getCallingUid");
         }
 
-        if (get_uid) {
-            uid_t uid = get_uid();
-            if (uid >= 10000) {
-                std::shared_lock lock(hiddenUidsMutex);
-                if (hiddenUids.find(uid) != hiddenUids.end()) {
-                    return false;
-                }
+        uid_t uid = -1;
+
+        if (get_uid_ndk) {
+            uid = get_uid_ndk();
+        } else if (getCallingUidMethodID) {
+            uid = (uid_t)env->CallStaticIntMethod(javaBinderClass, getCallingUidMethodID);
+        }
+
+        if (uid != (uid_t)-1 && uid >= 10000) {
+            uid_t app_id = uid % 100000;
+
+            if (app_id >= 99000 && app_id <= 99999) {
+                return false;
+            }
+
+            std::shared_lock lock(hiddenUidsMutex);
+            if (hiddenUids.find(uid) != hiddenUids.end()) {
+                return false;
             }
         }
 
