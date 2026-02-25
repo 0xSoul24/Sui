@@ -37,6 +37,7 @@ public class BridgeService {
     private static final int ACTION_SEND_BINDER = 1;
     private static final int ACTION_GET_BINDER = ACTION_SEND_BINDER + 1;
     private static final int ACTION_NOTIFY_FINISHED = ACTION_SEND_BINDER + 2;
+    private static final int ACTION_SYNC_HIDDEN_UIDS = ACTION_SEND_BINDER + 3;
 
     private static final int RETRY_MAX = 3;
     private static final long RETRY_DELAY_MS = 1000;
@@ -144,6 +145,18 @@ public class BridgeService {
                     }
                     return true;
                 }
+                break;
+            }
+            case ACTION_SYNC_HIDDEN_UIDS: {
+                if (Binder.getCallingUid() == 0) {
+                    int[] uids = data.createIntArray();
+                    SystemProcess.updateHiddenUids(uids);
+                    if (reply != null) {
+                        reply.writeNoException();
+                    }
+                    return true;
+                }
+                break;
             }
         }
         return false;

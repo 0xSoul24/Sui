@@ -138,28 +138,6 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         return uid;
     }
 
-    /*private void dumpSuiProcess() {
-        try {
-            java.lang.Process p = new java.lang.ProcessBuilder("ps", "-ef").start();
-            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()));
-            String line;
-            boolean found = false;
-            LOGGER.i("DEBUG_PS START");
-            while ((line = reader.readLine()) != null) {
-                if (line.contains("sui")) {
-                    LOGGER.e("DEBUG_PS: " + line);
-                    found = true;
-                }
-            }
-            if (!found) {
-                LOGGER.e("DEBUG_PS: No 'sui' process found in ps output!");
-            }
-            LOGGER.i("DEBUG_PS END");
-            p.waitFor();
-        } catch (Throwable e) {
-            LOGGER.e(e, "DEBUG_PS: Failed to execute ps command");
-        }
-    }*/
     private final Runnable registerTask = new Runnable() {
         @Override
         public void run() {
@@ -174,6 +152,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                 public void onResponseFromBridgeService(boolean response) {
                     if (response) {
                         LOGGER.i("SUCCESS: Service binder sent to bridge.");
+                        BridgeServiceClient.syncHiddenUids(configManager.getHiddenUids());
                     } else {
                         LOGGER.w("FAILURE: No response from bridge. Retrying in 1s...");
                         // dumpSuiProcess();
@@ -462,6 +441,10 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
                     getUserServiceManager().removeUserServicesForPackage(record.packageName);
                 }
             }
+
+            if ((mask & SuiConfig.FLAG_HIDDEN) != 0) {
+                BridgeServiceClient.syncHiddenUids(configManager.getHiddenUids());
+            }
         }
     }
 
@@ -481,6 +464,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         if (Intent.ACTION_PACKAGE_REMOVED.equals(action) && uid > 0 & !replacing) {
             LOGGER.i("uid %d is removed", uid);
             configManager.remove(uid);
+            BridgeServiceClient.syncHiddenUids(configManager.getHiddenUids());
         } else if (Intent.ACTION_PACKAGE_FULLY_REMOVED.equals(action) && !replacing) {
             Uri uri = intent.getData();
             String packageName = (uri != null) ? uri.getSchemeSpecificPart() : null;
@@ -739,6 +723,14 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             return true;
         }
         return super.onTransact(code, data, reply, flags);
+    }
+
+    @Override
+    public int[] getHiddenUids() {
+        if (Binder.getCallingUid() != 1000) {
+            throw new SecurityException();
+        }
+        return configManager.getHiddenUids();
     }
 
     @Override

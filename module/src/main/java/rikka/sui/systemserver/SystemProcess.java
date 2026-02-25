@@ -77,5 +77,26 @@ public final class SystemProcess {
 
     public static void main(String[] args) {
         LOGGER.d("main: %s", Arrays.toString(args));
+
+        try {
+            moe.shizuku.server.IShizukuService service = BridgeService.get();
+            if (service != null) {
+                int[] hiddenUids = service.getHiddenUids();
+                LOGGER.d("syncing %d hidden uids to native", hiddenUids.length);
+                setHiddenUids(hiddenUids);
+            } else {
+                LOGGER.w("IShizukuService is null in SystemProcess.main");
+            }
+        } catch (Throwable e) {
+            LOGGER.w(e, "failed to sync hidden uids to native");
+        }
     }
+
+    public static void updateHiddenUids(int[] uids) {
+        if (uids == null) return;
+        LOGGER.d("syncing %d hidden uids to native", uids.length);
+        setHiddenUids(uids);
+    }
+
+    private static native void setHiddenUids(int[] uids);
 }

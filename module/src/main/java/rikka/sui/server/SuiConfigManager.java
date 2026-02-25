@@ -20,6 +20,7 @@
 package rikka.sui.server;
 
 import androidx.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
 import rikka.shizuku.server.ConfigManager;
 
@@ -189,6 +190,22 @@ public class SuiConfigManager extends ConfigManager {
             remove(DEFAULT_UID);
         } else {
             update(DEFAULT_UID, SuiConfig.MASK_PERMISSION, value);
+        }
+    }
+
+    public int[] getHiddenUids() {
+        synchronized (this) {
+            List<Integer> uids = new ArrayList<>();
+            for (SuiConfig.PackageEntry entry : config.packages) {
+                if (entry.uid >= 10000 && (entry.flags & SuiConfig.FLAG_HIDDEN) != 0) {
+                    uids.add(entry.uid);
+                }
+            }
+            int[] res = new int[uids.size()];
+            for (int i = 0; i < uids.size(); i++) {
+                res[i] = uids.get(i);
+            }
+            return res;
         }
     }
 }

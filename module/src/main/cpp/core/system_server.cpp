@@ -36,6 +36,8 @@
 #include <cinttypes>
 #include <string>
 #include <vector>
+#include <unordered_set>
+#include <shared_mutex>
 
 #include "android.h"
 #include "logging.h"
@@ -55,32 +57,28 @@ static jmethodID my_execTransactMethodID;
 
 static jint startShortcutTransactionCode = -1;
 
-static std::string get_process_name(pid_t pid) {
-    std::string path = "/proc/" + std::to_string(pid) + "/cmdline";
-    int fd = open(path.c_str(), O_RDONLY);
-    if (fd < 0)
-        return "";
+static std::unordered_set<uid_t> hiddenUids;
+static std::shared_mutex hiddenUidsMutex;
 
-    char buf[256] = {0};
-    ssize_t len = read(fd, buf, sizeof(buf) - 1);
-    close(fd);
-
-    if (len > 0) {
-        return std::string(buf);
+static void setHiddenUids(JNIEnv* env, jclass, jintArray uids) {
+    std::unique_lock lock(hiddenUidsMutex);
+    if (!uids) {
+        hiddenUids.clear();
+        return;
     }
-    return "";
-}
 
-static bool is_blacklisted_app(pid_t pid) {
-    std::string process_name = get_process_name(pid);
-    if (process_name.empty())
-        return false;
-    if (process_name.find("icu.nullptr.nativetest") != std::string::npos)
-        return true;
-    if (process_name.find("com.android.nativetest") != std::string::npos)
-        return true;
-    // if (process_name.find("com.example.suidetect") != std::string::npos) return true;
-    return false;
+    jsize len = env->GetArrayLength(uids);
+    jint* body = env->GetIntArrayElements(uids, nullptr);
+    if (body == nullptr) {
+        return;
+    }
+
+    hiddenUids.clear();
+    for (jsize i = 0; i < len; i++) {
+        hiddenUids.insert((uid_t)body[i]);
+    }
+    env->ReleaseIntArrayElements(uids, body, JNI_ABORT);
+    LOGD("updated %zu hidden uids", hiddenUids.size());
 }
 
 static bool installDex(JNIEnv* env, Dex* dexFile) {
@@ -95,6 +93,15 @@ static bool installDex(JNIEnv* env, Dex* dexFile) {
         return false;
     }
     mainClass = (jclass)env->NewGlobalRef(mainClass);
+
+    JNINativeMethod methods[] = {
+        {"setHiddenUids", "([I)V", (void*)setHiddenUids},
+    };
+
+    if (env->RegisterNatives(mainClass, methods, sizeof(methods) / sizeof(methods[0])) < 0) {
+        LOGE("unable to register natives");
+        return false;
+    }
 
     auto mainMethod = env->GetStaticMethodID(mainClass, "main", "([Ljava/lang/String;)V");
     if (!mainMethod) {
@@ -155,12 +162,11 @@ static bool ExecTransact(jboolean* res, JNIEnv* env, jobject obj, va_list args) 
                 get_pid = (AIBinder_getCallingPid_t)dlsym(libbinder_ndk, "AIBinder_getCallingPid");
         }
 
-        if (get_uid && get_pid) {
+        if (get_uid) {
             uid_t uid = get_uid();
-            if (uid < 10000) {
-            } else {
-                pid_t pid = get_pid();
-                if (is_blacklisted_app(pid)) {
+            if (uid >= 10000) {
+                std::shared_lock lock(hiddenUidsMutex);
+                if (hiddenUids.find(uid) != hiddenUids.end()) {
                     return false;
                 }
             }
