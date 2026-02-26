@@ -119,6 +119,17 @@ public class SettingsProcess {
         LOGGER.d("registerActivityLifecycleCallbacks");
     }*/
 
+    private static String getOrGenerateToken(Context context) {
+        android.content.SharedPreferences prefs = context.getSharedPreferences("sui_settings", Context.MODE_PRIVATE);
+        String token = prefs.getString("shortcut_token", null);
+        if (token == null) {
+            token = java.util.UUID.randomUUID().toString();
+            prefs.edit().putString("shortcut_token", token).apply();
+            LOGGER.v("Generated and saved secure token");
+        }
+        return token;
+    }
+
     @TargetApi(Build.VERSION_CODES.O)
     private static void shortcutStuff(Application application, Resources resources) {
         UserManager userManager = application.getSystemService(UserManager.class);
@@ -128,9 +139,11 @@ public class SettingsProcess {
             return;
         }
 
+        String token = getOrGenerateToken(application);
+
         boolean hasDynamic;
         try {
-            hasDynamic = SuiShortcut.updateExistingShortcuts(application, resources);
+            hasDynamic = SuiShortcut.updateExistingShortcuts(application, resources, token);
         } catch (Throwable e) {
             LOGGER.e(e, "updateExistingShortcuts");
             hasDynamic = false;
@@ -138,7 +151,7 @@ public class SettingsProcess {
 
         if (!hasDynamic) {
             try {
-                SuiShortcut.addDynamicShortcut(application, resources);
+                SuiShortcut.addDynamicShortcut(application, resources, token);
             } catch (Throwable e) {
                 LOGGER.e(e, "addDynamicShortcut");
             }
@@ -155,6 +168,7 @@ public class SettingsProcess {
         handlerThread.quit();
     }
 
+    @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
     private static void postBindApplication(ActivityThread activityThread) {
         LOGGER.i("postBindApplication: Entered.");
         SuiApk suiApk = SuiApk.createForSettings();
@@ -187,43 +201,54 @@ public class SettingsProcess {
                             LOGGER.i("Shortcut creation request received via broadcast!");
                             WorkerHandler.get().post(() -> {
                                 try {
-                                    SuiShortcut.requestPinnedShortcut(application, suiApk.getResources());
+                                    String token = getOrGenerateToken(application);
+                                    SuiShortcut.requestPinnedShortcut(application, suiApk.getResources(), token);
                                 } catch (Throwable e) {
                                     LOGGER.e(e, "Failed to create shortcut from broadcast receiver");
+                                }
+                            });
+                        } else if ("rikka.sui.ACTION_START_SUI_UI".equals(intent.getAction())) {
+                            LOGGER.i("Direct UI Launch request received securely from SystemUI (ManagerProcess)");
+                            WorkerHandler.get().post(() -> {
+                                try {
+                                    String token = getOrGenerateToken(application);
+                                    if (token != null) {
+                                        Intent startIntent = SuiShortcut.getIntent(application, true, token);
+                                        startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                        application.startActivity(startIntent);
+                                        LOGGER.v("Sui UI explicitly launched via ManagerProcess Proxy");
+                                    } else {
+                                        LOGGER.v("Cannot launch Sui UI: Token not generated yet");
+                                    }
+                                } catch (Throwable e) {
+                                    LOGGER.e(e, "Failed to launch Sui UI from broadcast receiver");
                                 }
                             });
                         }
                     }
                 };
-                IntentFilter filter = new IntentFilter("rikka.sui.ACTION_REQUEST_PINNED_SHORTCUT");
+                IntentFilter filter = new IntentFilter();
+                filter.addAction("rikka.sui.ACTION_REQUEST_PINNED_SHORTCUT");
+                filter.addAction("rikka.sui.ACTION_START_SUI_UI");
 
-                // Smart reflection to support both Android 7.1 and Android 14+
+                // Enforce android.permission.WRITE_SECURE_SETTINGS to ensure ONLY system apps (like SystemUI/Dialer)
+                // can trigger this receiver. This prevents malicious normal apps from sending ACTION_START_SUI_UI
+                // to completely bypass our Secure Token protection.
                 try {
-                    java.lang.reflect.Method m2 = null;
-                    java.lang.reflect.Method m3 = null;
-                    for (java.lang.reflect.Method m : Context.class.getMethods()) {
-                        if (m.getName().equals("registerReceiver")) {
-                            Class<?>[] params = m.getParameterTypes();
-                            if (params.length == 2
-                                    && params[0].equals(BroadcastReceiver.class)
-                                    && params[1].equals(IntentFilter.class)) {
-                                m2 = m;
-                            } else if (params.length == 3
-                                    && params[0].equals(BroadcastReceiver.class)
-                                    && params[1].equals(IntentFilter.class)
-                                    && params[2].equals(int.class)) {
-                                m3 = m;
-                            }
-                        }
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        application.registerReceiver(
+                                shortcutReceiver,
+                                filter,
+                                "android.permission.WRITE_SECURE_SETTINGS",
+                                null,
+                                Context.RECEIVER_EXPORTED);
+                    } else {
+                        application.registerReceiver(
+                                shortcutReceiver, filter, "android.permission.WRITE_SECURE_SETTINGS", null);
                     }
-
-                    if (m3 != null) {
-                        m3.invoke(application, shortcutReceiver, filter, 2);
-                    } else if (m2 != null) {
-                        m2.invoke(application, shortcutReceiver, filter);
-                    }
+                    LOGGER.i("Shortcut/UI request receiver registered securely");
                 } catch (Throwable e) {
-                    LOGGER.e(e, "Failed to register receiver");
+                    LOGGER.e(e, "Failed to register receiver securely");
                 }
             } catch (Throwable e) {
                 LOGGER.e(e, "Failed to setup shortcut creation broadcast receiver.");

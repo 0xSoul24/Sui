@@ -41,7 +41,6 @@ import moe.shizuku.server.IShizukuApplication;
 import moe.shizuku.server.IShizukuService;
 import rikka.sui.resource.SuiApk;
 import rikka.sui.server.ServerConstants;
-import rikka.sui.shortcut.SuiShortcut;
 import rikka.sui.util.BridgeServiceClient;
 
 public class ManagerProcess {
@@ -108,11 +107,10 @@ public class ManagerProcess {
         Context context;
         try {
             context = ActivityThread.currentActivityThread().getApplication();
-            if (intent == null) {
-                intent = SuiShortcut.getIntent(context, true);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            }
-            context.startActivity(intent);
+            LOGGER.i("Sending ACTION_START_SUI_UI broadcast from ManagerProcess...");
+            Intent intent = new Intent("rikka.sui.ACTION_START_SUI_UI");
+            intent.setPackage("com.android.settings");
+            context.sendBroadcast(intent);
         } catch (Throwable e) {
             LOGGER.w(e, "showManagement");
         }
