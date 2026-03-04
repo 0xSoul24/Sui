@@ -2,6 +2,7 @@ package rikka.sui.util
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Rect
@@ -21,12 +22,14 @@ import android.widget.PopupWindow
 import androidx.appcompat.widget.ListPopupWindow
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.toColorInt
 import androidx.core.view.get
 import androidx.core.view.size
 import androidx.dynamicanimation.animation.SpringAnimation
 import androidx.dynamicanimation.animation.SpringForce
 import rikka.sui.R
+import rikka.sui.ktx.resolveColor
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 
@@ -181,7 +184,13 @@ fun PopupMenu.applyMiuixPopupStyle() {
                 try {
                     if (listView != null) {
                         val radiusPx = 16f * listView.context.resources.displayMetrics.density
-                        val bgColor = ContextCompat.getColor(listView.context, R.color.miuix_card_normal)
+                        var bgColor = ContextCompat.getColor(listView.context, R.color.miuix_card_normal)
+                        val isNight = (listView.context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+                        val prefs = listView.context.getSharedPreferences("sui_settings", Context.MODE_PRIVATE)
+                        if (!isNight && prefs.getBoolean("monet_enabled", true)) {
+                            val primaryColor = listView.context.theme.resolveColor(androidx.appcompat.R.attr.colorPrimary)
+                            bgColor = ColorUtils.blendARGB(bgColor, primaryColor, 0.10f)
+                        }
                         it.setBackgroundDrawable(MiuixSmoothCardDrawable(radiusPx, bgColor, false))
                     }
                 } catch (e: Exception) {
@@ -232,8 +241,8 @@ fun PopupMenu.applyMiuixPopupStyle() {
     }
 }
 
-fun PopupMenu.colorCheckedItemsMiuixBlue() {
-    val highlightColor = "#277AF7".toColorInt()
+fun PopupMenu.colorCheckedItemsMiuixBlue(context: Context) {
+    val highlightColor = context.theme.resolveColor(R.attr.colorPrimary)
     val menu = this.menu
     for (i in 0 until menu.size) {
         val item = menu[i]

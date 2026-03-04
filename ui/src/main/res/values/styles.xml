@@ -17,8 +17,9 @@
         <item name="android:windowExitAnimation">@anim/miuix_popup_exit</item>
     </style>
 
-    <style name="Theme.Sui.PopupMenu" parent="Theme.Sui">
+    <style name="Theme.Sui.PopupMenu" parent="">
         <item name="checkboxStyle">@style/Sui.PopupMenu.CheckBox</item>
+        <item name="android:checkboxStyle">@style/Sui.PopupMenu.CheckBox</item>
         <item name="radioButtonStyle">@style/Sui.PopupMenu.CheckBox</item>
         <item name="android:radioButtonStyle">@style/Sui.PopupMenu.CheckBox</item>
         <item name="android:popupAnimationStyle">@style/SuiPopupAnimation</item>
@@ -34,9 +35,11 @@
 
     <style name="Sui.PopupMenu.CheckBox" parent="Widget.AppCompat.CompoundButton.CheckBox">
         <item name="android:button">@drawable/miuix_popup_checkbox_selector</item>
+        <item name="buttonCompat">@drawable/miuix_popup_checkbox_selector</item>
+        <item name="android:background">@null</item>
         <item name="buttonTint">@null</item>
         <item name="android:buttonTint">@null</item>
-        <item name="android:background">@null</item>
+        <item name="android:tint">@null</item>
     </style>
 
     <style name="MiuixBottomSheetDialogStyle" parent="Theme.AppCompat.Light.Dialog">

@@ -44,7 +44,7 @@ import android.widget.Toast
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.toColorInt
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.core.view.ViewCompat
@@ -60,6 +60,7 @@ import rikka.lifecycle.viewModels
 import rikka.sui.R
 import rikka.sui.app.AppFragment
 import rikka.sui.databinding.ManagementBinding
+import rikka.sui.ktx.resolveColor
 import rikka.sui.model.AppInfo
 import rikka.sui.server.SuiConfig
 import rikka.sui.util.BridgeServiceClient
@@ -258,6 +259,7 @@ class ManagementFragment : AppFragment() {
         }
         MiuixPopupDimOverlay.show(requireActivity())
 
+        val highlightColor = requireContext().theme.resolveColor(R.attr.colorPrimary)
         val filterItem = popupMenu.menu.findItem(R.id.action_filter_shizuku)
         val isChecked = viewModel.showOnlyShizukuApps
         filterItem?.isChecked = isChecked
@@ -267,7 +269,7 @@ class ManagementFragment : AppFragment() {
             filterItem.title = if (isChecked) {
                 val ssb = SpannableString(plainTitle)
                 ssb.setSpan(
-                    ForegroundColorSpan("#277AF7".toColorInt()),
+                    ForegroundColorSpan(highlightColor),
                     0,
                     plainTitle.length,
                     Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
@@ -277,6 +279,27 @@ class ManagementFragment : AppFragment() {
                 plainTitle
             }
         }
+
+        val monetItem = popupMenu.menu.findItem(R.id.action_monet)
+        val isMonetEnabled = viewModel.isMonetEnabled
+        monetItem?.isChecked = isMonetEnabled
+
+        monetItem?.title?.let { title ->
+            val plainTitle = title.toString()
+            monetItem.title = if (isMonetEnabled) {
+                val ssb = SpannableString(plainTitle)
+                ssb.setSpan(
+                    ForegroundColorSpan(highlightColor),
+                    0,
+                    plainTitle.length,
+                    Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                )
+                ssb
+            } else {
+                plainTitle
+            }
+        }
+
         popupMenu.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.action_filter_shizuku -> {
@@ -293,16 +316,22 @@ class ManagementFragment : AppFragment() {
                 R.id.action_add_shortcut -> {
                     try {
                         BridgeServiceClient.requestPinnedShortcut()
-                        Toast.makeText(requireContext(), "在尝试创建喵...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.toast_request_shortcut, Toast.LENGTH_SHORT).show()
                     } catch (e: Throwable) {
                         android.util.Log.e("SuiShortcutRPC", "Failed to request pinned shortcut via RPC", e)
-                        Toast.makeText(requireContext(), "创建失败喵: " + e.message, Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), getString(R.string.toast_request_shortcut_failed, e.message), Toast.LENGTH_LONG).show()
                     }
                     true
                 }
 
                 R.id.action_about -> {
                     showAboutDialog()
+                    true
+                }
+
+                R.id.action_monet -> {
+                    viewModel.toggleMonetSetting(requireContext())
+                    requireActivity().recreate()
                     true
                 }
 
@@ -326,7 +355,7 @@ class ManagementFragment : AppFragment() {
         val currentDefaultMode = viewModel.appList.value?.data?.firstOrNull()?.defaultFlags
             ?.and(SuiConfig.MASK_PERMISSION) ?: 0
 
-        val highlightColor = "#277AF7".toColorInt()
+        val highlightColor = requireContext().theme.resolveColor(R.attr.colorPrimary)
 
         val menu = popupMenu.menu
         for (i in 0 until menu.size()) {
@@ -381,6 +410,7 @@ class ManagementFragment : AppFragment() {
         viewModel.batchUpdate(targetMode, requireContext())
     }
 
+    @android.annotation.SuppressLint("StringFormatInvalid")
     private fun showAboutDialog() {
         val versionName = try {
             rikka.sui.BuildConfig.VERSION_NAME
@@ -414,13 +444,24 @@ class ManagementFragment : AppFragment() {
         val buttonOk = contentView.findViewById<android.widget.TextView>(R.id.button_ok)
         val density = requireContext().resources.displayMetrics.density
 
-        val sheetColor = requireContext().getColor(R.color.miuix_bottom_sheet_bg_color)
+        val sheetColor = ContextCompat.getColor(requireContext(), R.color.miuix_bottom_sheet_bg_color)
         val baseRadiusPx = MiuixSquircleUtils.getBottomCornerRadius(requireContext())
         val dynamicRadiusPx = baseRadiusPx + 12f * density
         root?.background = MiuixSmoothCardDrawable(dynamicRadiusPx, sheetColor, topCornersOnly = false)
 
-        val isNightMode = (requireContext().resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        val btnColor = if (isNightMode) "#434343".toColorInt() else "#F0F0F0".toColorInt()
+        val primaryColor = requireContext().theme.resolveColor(R.attr.colorPrimary)
+        val isNight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val isMonetEnabled = viewModel.isMonetEnabled
+
+        val btnColor = if (isMonetEnabled) {
+            if (isNight) {
+                ColorUtils.blendARGB(sheetColor, primaryColor, 0.20f)
+            } else {
+                ColorUtils.blendARGB(sheetColor, primaryColor, 0.10f)
+            }
+        } else {
+            requireContext().getColor(R.color.miuix_button_bg_color)
+        }
         val btnRadiusPx = 16f * density
         buttonOk?.background = MiuixSmoothCardDrawable.createSelectorWithOverlay(
             requireContext(),
@@ -435,7 +476,7 @@ class ManagementFragment : AppFragment() {
         val basePaddingBottomPx = 24f * density
 
         if (root != null) {
-            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
                 val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
                 v.setPadding(
                     v.paddingLeft,

@@ -36,8 +36,11 @@ class DebugActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.Theme_Sui)
-        com.google.android.material.color.DynamicColors
-            .applyToActivityIfAvailable(this)
+        val prefs = applicationContext.getSharedPreferences("sui_settings", android.content.Context.MODE_PRIVATE)
+        if (prefs.getBoolean("monet_enabled", true)) {
+            com.google.android.material.color.DynamicColors
+                .applyToActivityIfAvailable(this)
+        }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 

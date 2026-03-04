@@ -18,7 +18,9 @@
  */
 package rikka.sui.management
 
+import android.content.Context
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Typeface
 import android.os.SystemClock
 import android.util.Log
@@ -30,12 +32,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.get
 import androidx.core.view.size
 import kotlinx.coroutines.Job
 import rikka.recyclerview.BaseViewHolder
 import rikka.sui.R
 import rikka.sui.databinding.ManagementAppItemBinding
+import rikka.sui.ktx.resolveColor
 import rikka.sui.model.AppInfo
 import rikka.sui.server.SuiConfig
 import rikka.sui.util.AppIconCache
@@ -92,7 +96,13 @@ class ManagementAppItemViewHolder(
         context.theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)
         textColorPrimary = context.getColorStateList(typedValue.resourceId)
 
-        val normalColor = context.getColor(R.color.miuix_card_normal)
+        var normalColor = context.getColor(R.color.miuix_card_normal)
+        val isNight = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val prefs = context.getSharedPreferences("sui_settings", Context.MODE_PRIVATE)
+        if (!isNight && prefs.getBoolean("monet_enabled", true)) {
+            val primaryColor = context.theme.resolveColor(androidx.appcompat.R.attr.colorPrimary)
+            normalColor = ColorUtils.blendARGB(normalColor, primaryColor, 0.10f)
+        }
         this.itemView.background = MiuixSmoothCardDrawable.createSelectorWithOverlay(
             context,
             normalColor,
@@ -180,7 +190,7 @@ class ManagementAppItemViewHolder(
             true
         }
 
-        popupMenu.colorCheckedItemsMiuixBlue()
+        popupMenu.colorCheckedItemsMiuixBlue(itemView.context)
         popupMenu.applyMiuixPopupStyle()
     }
 
@@ -253,16 +263,12 @@ class ManagementAppItemViewHolder(
         }
 
         if (explicitAllowed) {
-            val typedValue = TypedValue()
-            context.theme.resolveAttribute(androidx.appcompat.R.attr.colorAccent, typedValue, true)
-            statusText.setTextColor(typedValue.data)
+            statusText.setTextColor(context.theme.resolveColor(androidx.appcompat.R.attr.colorAccent))
         } else if (explicitDenied) {
             val isNight = context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_YES != 0
             statusText.setTextColor(if (isNight) 0xFFFF8A80.toInt() else 0xFFFF5252.toInt())
         } else if (explicitHidden) {
-            val typedValue = TypedValue()
-            context.theme.resolveAttribute(android.R.attr.colorForeground, typedValue, true)
-            statusText.setTextColor(typedValue.data)
+            statusText.setTextColor(context.theme.resolveColor(android.R.attr.colorForeground))
         } else {
             val typedValue = TypedValue()
             context.theme.resolveAttribute(android.R.attr.textColorTertiary, typedValue, true)

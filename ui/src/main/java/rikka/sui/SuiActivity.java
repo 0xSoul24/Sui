@@ -54,7 +54,7 @@ public class SuiActivity extends AppActivity {
             savedInstanceState.remove("android:fragments");
         }
         super.onCreate(savedInstanceState);
-        com.google.android.material.color.DynamicColors.applyToActivityIfAvailable(this);
+
         setContentView(R.layout.main);
         setTitle("Sui");
         Objects.requireNonNull(getSupportActionBar()).setSubtitle(BuildConfig.VERSION_NAME);

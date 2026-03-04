@@ -21,7 +21,11 @@ package rikka.sui.app;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,9 +34,12 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.ColorUtils;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import com.google.android.material.color.DynamicColors;
 import rikka.sui.R;
+import rikka.sui.ktx.ResourcesKt;
 
 public class AppActivity extends AppCompatActivity {
 
@@ -71,6 +78,12 @@ public class AppActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         setTheme(R.style.Theme_Sui);
+
+        SharedPreferences prefs = getApplicationContext().getSharedPreferences("sui_settings", Context.MODE_PRIVATE);
+        if (prefs.getBoolean("monet_enabled", true)) {
+            DynamicColors.applyToActivityIfAvailable(this);
+        }
+
         super.onCreate(savedInstanceState);
 
         try {
@@ -93,6 +106,18 @@ public class AppActivity extends AppCompatActivity {
             });
 
             EdgeToEdge.enable(this);
+
+            boolean isNight = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
+                    == Configuration.UI_MODE_NIGHT_YES;
+            if (isNight && prefs.getBoolean("monet_enabled", true)) {
+                int primaryColor = ResourcesKt.resolveColor(getTheme(), androidx.appcompat.R.attr.colorPrimary);
+                int blendedBg = ColorUtils.blendARGB(Color.BLACK, primaryColor, 0.10f);
+                rootView.setBackgroundColor(blendedBg);
+                if (toolbarContainer != null) {
+                    toolbarContainer.setBackgroundColor(blendedBg);
+                }
+                getWindow().setBackgroundDrawable(new ColorDrawable(blendedBg));
+            }
         } catch (Throwable t) {
             android.util.Log.e("Sui", "Fatal error in AppActivity.onCreate", t);
         }

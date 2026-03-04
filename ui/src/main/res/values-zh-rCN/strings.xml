@@ -44,9 +44,12 @@
     <string name="about_button_ok">确定</string>
     <string name="action_batch_unconfigured">修改默认值</string>
     <string name="action_filter_shizuku_apps">仅显示Shizuku应用</string>
+    <string name="action_monet">动态取色</string>
     <string name="about_version">v%1$s</string>
     <string name="about_license_part1">本项目遵循 GPLv3 在 </string>
     <string name="about_license_part2">GitHub</string>
     <string name="about_license_part3"> 开源 \nCopyright (c) 2021-2026 Sui Contributors</string>
     <string name="about_contributors">贡献者: Rikka, yujincheng08, Kr328, yangFenTuoZi, XiaoTong</string>
+    <string name="toast_request_shortcut">在尝试创建喵...</string>
+    <string name="toast_request_shortcut_failed">创建失败喵: %1$s</string>
 </resources>

@@ -32,20 +32,26 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.PixelFormat;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
+import androidx.core.graphics.ColorUtils;
+import com.google.android.material.color.DynamicColors;
 import dev.rikka.tools.refine.Refine;
 import java.util.Objects;
 import rikka.html.text.HtmlCompat;
 import rikka.sui.R;
 import rikka.sui.databinding.ConfirmationDialogBinding;
 import rikka.sui.ktx.HandlerKt;
+import rikka.sui.ktx.ResourcesKt;
 import rikka.sui.ktx.TextViewKt;
 import rikka.sui.ktx.WindowKt;
 import rikka.sui.util.AppLabel;
@@ -63,17 +69,18 @@ public class ConfirmationDialog {
     private final Context context;
     private final Resources resources;
     private final LayoutInflater layoutInflater;
+    private boolean monetEnabled = true;
+    private final boolean isNight;
 
     @SuppressWarnings("deprecation")
     public ConfirmationDialog(Application application, Resources resources) {
         Configuration hostConfig = application.getResources().getConfiguration();
         resources.updateConfiguration(hostConfig, application.getResources().getDisplayMetrics());
 
-        boolean isNight = (hostConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-        int themeRes =
-                isNight ? android.R.style.Theme_DeviceDefault_Dialog : android.R.style.Theme_DeviceDefault_Light_Dialog;
+        this.isNight = (hostConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        int themeRes = R.style.Theme_Sui;
 
-        this.context = new android.view.ContextThemeWrapper(application, themeRes) {
+        Context wrappedContext = new ContextThemeWrapper(application, themeRes) {
             @Override
             public Resources getResources() {
                 return resources;
@@ -84,6 +91,19 @@ public class ConfirmationDialog {
                 return ConfirmationDialog.class.getClassLoader();
             }
         };
+
+        try {
+            int globalSettings = BridgeServiceClient.getGlobalSettings();
+            this.monetEnabled = (globalSettings & BridgeServiceClient.FLAG_MONET_DISABLED) == 0;
+        } catch (Throwable e) {
+            LOGGER.e("getGlobalSettings failed in ConfirmationDialog", e);
+        }
+
+        if (monetEnabled) {
+            wrappedContext = DynamicColors.wrapContextIfAvailable(wrappedContext);
+        }
+
+        this.context = wrappedContext;
 
         this.resources = resources;
         this.layoutInflater = LayoutInflater.from(this.context);
@@ -108,8 +128,6 @@ public class ConfirmationDialog {
 
     @SuppressWarnings("deprecation")
     private void showInternal(int requestUid, int requestPid, String requestPackageName, int requestCode) {
-        boolean isNight = (context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
-                == Configuration.UI_MODE_NIGHT_YES;
 
         MiuixBottomSheetLayout sheetLayout = new MiuixBottomSheetLayout(context);
 
@@ -158,7 +176,7 @@ public class ConfirmationDialog {
             dimView.animate()
                     .alpha(alpha)
                     .setDuration(duration)
-                    .setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f))
+                    .setInterpolator(new DecelerateInterpolator(1.5f))
                     .start();
             return kotlin.Unit.INSTANCE;
         });
@@ -230,8 +248,27 @@ public class ConfirmationDialog {
         int sheetColor = resources.getColor(R.color.miuix_bottom_sheet_bg_color, context.getTheme());
         binding.getRoot().setBackground(new MiuixSmoothCardDrawable(dynamicRadiusPx, sheetColor, false));
 
-        int btnColor =
-                isNight ? android.graphics.Color.parseColor("#434343") : android.graphics.Color.parseColor("#F0F0F0");
+        int primaryColor = -1;
+        if (monetEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                int sysColorId = isNight ? android.R.color.system_accent1_200 : android.R.color.system_accent1_600;
+                primaryColor = context.getResources().getColor(sysColorId, context.getTheme());
+            } catch (Exception ignored) {
+            }
+        }
+        if (primaryColor == -1) {
+            primaryColor = ResourcesKt.resolveColor(context.getTheme(), androidx.appcompat.R.attr.colorPrimary);
+        }
+
+        int btnColor;
+        if (monetEnabled) {
+            btnColor = isNight
+                    ? ColorUtils.blendARGB(sheetColor, primaryColor, 0.20f)
+                    : ColorUtils.blendARGB(sheetColor, primaryColor, 0.10f);
+        } else {
+            btnColor = resources.getColor(R.color.miuix_button_bg_color, context.getTheme());
+        }
+
         float btnRadiusPx = 16f * density;
         binding.button1.setBackground(
                 MiuixSmoothCardDrawable.Companion.createSelectorWithOverlay(context, btnColor, 16f, false));

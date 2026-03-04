@@ -21,6 +21,7 @@ package rikka.sui.management
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
+import androidx.core.content.edit
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -38,13 +39,10 @@ import rikka.sui.util.BridgeServiceClient
 
 class ManagementViewModel : ViewModel() {
 
-    companion object {
-        const val FLAG_SHOW_ONLY_SHIZUKU_APPS = 1 shl 0
-    }
-
     private val uiDebugMode = false
     private val fullList = ArrayList<AppInfo>()
     var showOnlyShizukuApps = false
+    var isMonetEnabled = true
     private var hasLoadedGlobalSettings = false
     val appList = MutableLiveData<Resource<List<AppInfo>>>(null)
     private var currentQuery: String? = null
@@ -73,15 +71,33 @@ class ManagementViewModel : ViewModel() {
             viewModelScope.launch(Dispatchers.IO) {
                 val currentFlags = BridgeServiceClient.getGlobalSettings()
                 val newFlags = if (enable) {
-                    currentFlags or FLAG_SHOW_ONLY_SHIZUKU_APPS
+                    currentFlags or BridgeServiceClient.FLAG_SHOW_ONLY_SHIZUKU_APPS
                 } else {
-                    currentFlags and FLAG_SHOW_ONLY_SHIZUKU_APPS.inv()
+                    currentFlags and BridgeServiceClient.FLAG_SHOW_ONLY_SHIZUKU_APPS.inv()
                 }
                 BridgeServiceClient.setGlobalSettings(newFlags)
             }
             reload(context)
         }
     }
+
+    fun toggleMonetSetting(context: Context) {
+        val newState = !isMonetEnabled
+        isMonetEnabled = newState
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentFlags = BridgeServiceClient.getGlobalSettings()
+            val newFlags = if (!newState) {
+                currentFlags or BridgeServiceClient.FLAG_MONET_DISABLED
+            } else {
+                currentFlags and BridgeServiceClient.FLAG_MONET_DISABLED.inv()
+            }
+            BridgeServiceClient.setGlobalSettings(newFlags)
+
+            val prefs = context.getSharedPreferences("sui_settings", Context.MODE_PRIVATE)
+            prefs.edit { putBoolean("monet_enabled", newState) }
+        }
+    }
+
     fun batchUpdate(targetMode: Int, context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
             if (uiDebugMode) {
@@ -119,7 +135,8 @@ class ManagementViewModel : ViewModel() {
             try {
                 if (!hasLoadedGlobalSettings) {
                     val flags = BridgeServiceClient.getGlobalSettings()
-                    showOnlyShizukuApps = (flags and FLAG_SHOW_ONLY_SHIZUKU_APPS) != 0
+                    showOnlyShizukuApps = (flags and BridgeServiceClient.FLAG_SHOW_ONLY_SHIZUKU_APPS) != 0
+                    isMonetEnabled = (flags and BridgeServiceClient.FLAG_MONET_DISABLED) == 0
                     hasLoadedGlobalSettings = true
                 }
 

@@ -5,6 +5,9 @@
         <item name="android:colorBackground">@color/miuix_window_background</item>
 
         <item name="colorPrimarySurface">@color/miuix_appbar_background</item>
+        <item name="colorPrimary">#277AF7</item>
+        <item name="colorSecondary"> #277AF7</item>
+        <item name="colorSurfaceVariant">@color/miuix_button_bg_color</item>
 
         <item name="popupMenuStyle">@style/Widget.Sui.PopupMenu</item>
         <item name="android:popupMenuStyle">@style/Widget.Sui.PopupMenu</item>
