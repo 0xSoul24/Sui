@@ -41,17 +41,6 @@ public class Bridge {
     }
 
     public static boolean isHidden(int uid) {
-        IShizukuService service = BridgeService.get();
-        if (service == null) {
-            LOGGER.d("binder is null");
-            return false;
-        }
-
-        try {
-            return service.isHidden(uid);
-        } catch (Throwable e) {
-            LOGGER.w(e, "isHidden");
-            return false;
-        }
+        return SystemProcess.isHidden(uid);
     }
 }
