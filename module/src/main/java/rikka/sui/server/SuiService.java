@@ -722,6 +722,19 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
             }
             return true;
         }
+        if (code == ServerConstants.BINDER_TRANSACTION_getShortcutToken) {
+            data.enforceInterface(ShizukuApiConstants.BINDER_DESCRIPTOR);
+            try {
+                enforceManagerPermission("getShortcutToken");
+                String token = configManager.getShortcutToken();
+                reply.writeNoException();
+                reply.writeString(token);
+            } catch (Throwable e) {
+                LOGGER.w(e, "getShortcutToken");
+                reply.writeException(new RuntimeException("Failed to get shortcut token", e));
+            }
+            return true;
+        }
         return super.onTransact(code, data, reply, flags);
     }
 

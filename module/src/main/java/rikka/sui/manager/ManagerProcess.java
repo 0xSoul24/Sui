@@ -108,11 +108,20 @@ public class ManagerProcess {
         Context context;
         try {
             context = ActivityThread.currentActivityThread().getApplication();
-            if (intent == null) {
-                intent = SuiShortcut.getIntent(context, true);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            LOGGER.i("Fetching secure token from Sui Service...");
+
+            String token = BridgeServiceClient.getShortcutToken();
+
+            if (token == null) {
+                LOGGER.e("Failed to retrieve token from Sui Service");
+                return;
             }
+
+            Intent intent = SuiShortcut.getIntent(context, true, token);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(intent);
+            LOGGER.v("Sui UI launched with verified token from Sui Service");
         } catch (Throwable e) {
             LOGGER.w(e, "showManagement");
         }

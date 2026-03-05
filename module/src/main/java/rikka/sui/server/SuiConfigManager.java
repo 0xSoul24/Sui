@@ -20,8 +20,13 @@
 package rikka.sui.server;
 
 import androidx.annotation.Nullable;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import rikka.shizuku.server.ConfigManager;
 
 public class SuiConfigManager extends ConfigManager {
@@ -207,5 +212,39 @@ public class SuiConfigManager extends ConfigManager {
             }
             return res;
         }
+    }
+
+    private String shortcutToken;
+
+    public synchronized String getShortcutToken() {
+        if (shortcutToken != null) {
+            return shortcutToken;
+        }
+
+        File tokenFile = new File("/data/adb/sui/shortcut_token");
+        if (tokenFile.exists() && tokenFile.length() > 0) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(tokenFile))) {
+                shortcutToken = reader.readLine();
+                if (shortcutToken != null && !shortcutToken.isEmpty()) {
+                    return shortcutToken;
+                }
+            } catch (IOException e) {
+                LOGGER.e(e, "Failed to read shortcut token");
+            }
+        }
+
+        shortcutToken = UUID.randomUUID().toString();
+        File tempFile = new File(tokenFile.getPath() + ".tmp");
+        try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile)) {
+            fos.write(shortcutToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            fos.getFD().sync();
+            fos.close();
+            if (!tempFile.renameTo(tokenFile)) {
+                throw new IOException("Rename failed");
+            }
+        } catch (IOException e) {
+            LOGGER.e(e, "Failed to write shortcut token atomically");
+        }
+        return shortcutToken;
     }
 }

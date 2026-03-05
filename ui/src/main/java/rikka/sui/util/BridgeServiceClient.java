@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import moe.shizuku.server.IShizukuService;
 import rikka.parcelablelist.ParcelableListSlice;
+import rikka.shizuku.ShizukuApiConstants;
 import rikka.sui.model.AppInfo;
 
 public class BridgeServiceClient {
@@ -300,7 +301,7 @@ public class BridgeServiceClient {
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
-            data.writeInterfaceToken(rikka.shizuku.ShizukuApiConstants.BINDER_DESCRIPTOR);
+            data.writeInterfaceToken(ShizukuApiConstants.BINDER_DESCRIPTOR);
             data.writeInt(targetMode);
 
             s.asBinder().transact(BINDER_TRANSACTION_BATCH_UPDATE_UNCONFIGURED, data, reply, 0);

@@ -21,6 +21,7 @@ package rikka.sui.settings;
 
 import static rikka.sui.settings.SettingsConstants.LOGGER;
 import static rikka.sui.shortcut.ShortcutConstants.SHORTCUT_EXTRA;
+import static rikka.sui.shortcut.ShortcutConstants.SHORTCUT_EXTRA_TOKEN;
 
 import android.app.Activity;
 import android.app.ActivityThread;
@@ -53,6 +54,7 @@ import com.android.internal.content.ReferrerIntent;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import rikka.sui.resource.SuiApk;
+import rikka.sui.util.BridgeServiceClient;
 import rikka.sui.util.InstrumentationUtil;
 
 public class SettingsInstrumentation extends Instrumentation {
@@ -111,11 +113,18 @@ public class SettingsInstrumentation extends Instrumentation {
         if (extras != null) {
             extras.setClassLoader(cl);
             if (extras.getInt(SHORTCUT_EXTRA, -1) != -1) {
-                LOGGER.v("creating SuiActivity");
-                try {
-                    return (Activity) suiActivityConstructor.newInstance(application, resources);
-                } catch (InvocationTargetException e) {
-                    LOGGER.e(e, "Cannot create activity");
+                String suiToken = extras.getString(SHORTCUT_EXTRA_TOKEN);
+                String realToken = BridgeServiceClient.getShortcutToken();
+
+                if (realToken != null && realToken.equals(suiToken)) {
+                    LOGGER.v("creating SuiActivity");
+                    try {
+                        return (Activity) suiActivityConstructor.newInstance(application, resources);
+                    } catch (InvocationTargetException e) {
+                        LOGGER.e(e, "Cannot create activity");
+                    }
+                } else {
+                    LOGGER.w("Invalid or missing SUI token in shortcut intent");
                 }
             }
         }
@@ -350,11 +359,18 @@ public class SettingsInstrumentation extends Instrumentation {
             if (extras != null) {
                 extras.setClassLoader(clazz.getClassLoader());
                 if (extras.getInt(SHORTCUT_EXTRA, -1) != -1) {
-                    LOGGER.v("creating SuiActivity from 10 args newActivity");
-                    try {
-                        return (Activity) suiActivityConstructor.newInstance(application, resources);
-                    } catch (InvocationTargetException e) {
-                        LOGGER.e(e, "Cannot create activity from 10 args");
+                    String suiToken = extras.getString(SHORTCUT_EXTRA_TOKEN);
+                    String realToken = BridgeServiceClient.getShortcutToken();
+
+                    if (realToken != null && realToken.equals(suiToken)) {
+                        LOGGER.v("creating SuiActivity from 10 args newActivity");
+                        try {
+                            return (Activity) suiActivityConstructor.newInstance(application, resources);
+                        } catch (InvocationTargetException e) {
+                            LOGGER.e(e, "Cannot create activity from 10 args");
+                        }
+                    } else {
+                        LOGGER.w("Invalid or missing SUI token in shortcut intent (10 args)");
                     }
                 }
             }
