@@ -68,11 +68,11 @@ elif [  "$KERNELPATCH" = true  ]; then
     apd sepolicy apply "$1"
   }
 else
-  MAGISK_VER_CODE=$(magisk -V)
+  MAGISK_VER_CODE=$(magisk -V 2>/dev/null)
 
   log -p i -t "Sui" "Magisk version $MAGISK_VER_CODE"
   apply_sepolicy() {
-    magiskpolicy --live --apply "$1"
+    magiskpolicy --live --apply "$1" 2>/dev/null
   }
 fi
 

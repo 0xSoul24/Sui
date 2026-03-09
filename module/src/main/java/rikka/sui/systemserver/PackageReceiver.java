@@ -46,7 +46,13 @@ public class PackageReceiver {
         }
     };
 
+    private static boolean isRegistered = false;
+
     public static void register() {
+        if (isRegistered) {
+            return;
+        }
+
         ActivityThread activityThread = ActivityThread.currentActivityThread();
         if (activityThread == null) {
             LOGGER.w("ActivityThread is null");
@@ -67,6 +73,7 @@ public class PackageReceiver {
                             ActivityThread.currentActivityThread().getSystemContext())
                     .registerReceiverAsUser(
                             RECEIVER, Refine.unsafeCast(UserHandleHidden.ALL), intentFilter, null, handler);
+            isRegistered = true;
             LOGGER.d("register package receiver");
         } catch (Throwable e) {
             LOGGER.w("registerReceiver failed", e);

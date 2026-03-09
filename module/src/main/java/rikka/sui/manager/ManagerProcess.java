@@ -150,13 +150,23 @@ public class ManagerProcess {
 
         try {
             service.attachApplication(APPLICATION, args);
-            LOGGER.i("attachApplication");
+            service.asBinder()
+                    .linkToDeath(
+                            () -> {
+                                LOGGER.w("Sui daemon died, schedule reconnection...");
+                                WorkerHandler.get().postDelayed(ManagerProcess::sendToService, 1000);
+                            },
+                            0);
+            LOGGER.i("attachApplication and linkToDeath successfully");
         } catch (RemoteException e) {
-            LOGGER.w(e, "attachApplication");
+            LOGGER.w(e, "attachApplication or linkToDeath failed");
             WorkerHandler.get().postDelayed(ManagerProcess::sendToService, 1000);
+            return;
         }
 
-        suiApk = SuiApk.createForSystemUI();
+        if (suiApk == null) {
+            suiApk = SuiApk.createForSystemUI();
+        }
     }
 
     private static void registerListener() {
