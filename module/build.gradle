@@ -117,7 +117,7 @@ androidComponents {
                 expand([
                         id         : moduleId,
                         name       : moduleName,
-                        version    : "${moduleVersion} (${moduleVersionCode.toString()})",
+                        version    : "${moduleVersion} (${moduleVersionCode.toString()}-${buildTypeLowered})",
                         versionCode: moduleVersionCode.toString(),
                         author     : moduleAuthor,
                         description: moduleDescription,
@@ -153,7 +153,7 @@ androidComponents {
                     f.file.eachByte 4096, { bytes, size ->
                         md.update(bytes, 0, size)
                     }
-                    file(f.file.path + ".sha256sum").text = md.digest().encodeHex()
+                    file(f.file.path + ".sha256").text = md.digest().encodeHex()
                 }
             }
         }
