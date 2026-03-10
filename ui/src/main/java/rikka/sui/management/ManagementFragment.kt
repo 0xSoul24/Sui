@@ -189,7 +189,7 @@ class ManagementFragment : AppFragment() {
 
         bounceEdgeEffectFactory.stateListener = object : MiuixBounceEdgeEffectFactory.PullStateChangeListener {
             override fun onPullStateChanged(dragOffset: Float, state: MiuixPullToRefreshView.RefreshState, thresholdOffset: Float, maxDragDistancePx: Float) {
-                binding.pullToRefreshIndicator.apply {
+                _binding?.pullToRefreshIndicator?.apply {
                     this.state = state
                     this.dragOffset = dragOffset
                     this.thresholdOffset = thresholdOffset
