@@ -67,7 +67,7 @@ public class SettingsInstrumentation extends Instrumentation {
 
     private final Class<?> suiActivityClass;
     private final Constructor<?> suiActivityConstructor;
-    private final Resources resources;
+    private final SuiApk suiApk;
 
     public SettingsInstrumentation(Instrumentation original, SuiApk suiApk) {
         this.original = original;
@@ -76,13 +76,17 @@ public class SettingsInstrumentation extends Instrumentation {
         classLoader = suiApk.getClassLoader();
         suiActivityClass = suiApk.getSuiActivityClass();
         suiActivityConstructor = suiApk.getSuiActivityConstructor();
-        resources = suiApk.getResources();
+        this.suiApk = suiApk;
 
         application.registerComponentCallbacks(new ComponentCallbacks2() {
 
             @Override
             public void onConfigurationChanged(@NonNull Configuration newConfig) {
-                resources.updateConfiguration(newConfig, resources.getDisplayMetrics());
+                try {
+                    suiApk.updateConfiguration(newConfig);
+                } catch (Exception e) {
+                    LOGGER.e(e, "Failed to update configuration");
+                }
             }
 
             @Override
@@ -94,7 +98,7 @@ public class SettingsInstrumentation extends Instrumentation {
     }
 
     public Resources getResources() {
-        return resources;
+        return suiApk.getResources();
     }
 
     @Override
@@ -119,7 +123,7 @@ public class SettingsInstrumentation extends Instrumentation {
                 if (realToken != null && realToken.equals(suiToken)) {
                     LOGGER.v("creating SuiActivity");
                     try {
-                        return (Activity) suiActivityConstructor.newInstance(application, resources);
+                        return (Activity) suiActivityConstructor.newInstance(application, suiApk.getResources());
                     } catch (InvocationTargetException e) {
                         LOGGER.e(e, "Cannot create activity");
                     }
@@ -365,7 +369,7 @@ public class SettingsInstrumentation extends Instrumentation {
                     if (realToken != null && realToken.equals(suiToken)) {
                         LOGGER.v("creating SuiActivity from 10 args newActivity");
                         try {
-                            return (Activity) suiActivityConstructor.newInstance(application, resources);
+                            return (Activity) suiActivityConstructor.newInstance(application, suiApk.getResources());
                         } catch (InvocationTargetException e) {
                             LOGGER.e(e, "Cannot create activity from 10 args");
                         }

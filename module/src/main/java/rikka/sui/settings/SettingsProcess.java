@@ -51,11 +51,17 @@ public class SettingsProcess {
     private static HandlerThread handlerThread;
 
     @TargetApi(Build.VERSION_CODES.O)
-    private static void shortcutStuff(Application application, Resources resources) {
+    private static void shortcutStuff(Application application, SettingsInstrumentation instrumentation) {
+        Resources resources = instrumentation.getResources();
+        if (resources == null) {
+            handler.postDelayed(() -> shortcutStuff(application, instrumentation), 5000);
+            return;
+        }
+
         UserManager userManager = application.getSystemService(UserManager.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !userManager.isUserUnlocked()) {
             LOGGER.v("Not unlocked, wait 5s");
-            handler.postDelayed(() -> shortcutStuff(application, resources), 5000);
+            handler.postDelayed(() -> shortcutStuff(application, instrumentation), 5000);
             return;
         }
 
@@ -147,12 +153,41 @@ public class SettingsProcess {
                 LOGGER.e(e, "Failed to setup shortcut creation broadcast receiver.");
             }
 
-            Resources resources = newInstrumentation.getResources();
-            if (resources != null) {
+            try {
+                BroadcastReceiver overlayReceiver = new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        if ("android.intent.action.OVERLAY_CHANGED".equals(intent.getAction())) {
+                            LOGGER.i("Overlay changed broadcast received! Reloading resources.");
+                            try {
+                                suiApk.reloadResources();
+                            } catch (Exception e) {
+                                LOGGER.e(e, "Failed to reload resources upon overlay change");
+                            }
+                        }
+                    }
+                };
+                IntentFilter overlayFilter = new IntentFilter("android.intent.action.OVERLAY_CHANGED");
+                overlayFilter.addDataScheme("package");
+                try {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        application.registerReceiver(overlayReceiver, overlayFilter, Context.RECEIVER_EXPORTED);
+                    } else {
+                        application.registerReceiver(overlayReceiver, overlayFilter);
+                    }
+                    LOGGER.i("Overlay changed receiver registered.");
+                } catch (Throwable e) {
+                    LOGGER.e(e, "Failed to register overlay receiver");
+                }
+            } catch (Throwable e) {
+                LOGGER.e(e, "Failed to setup overlay changed broadcast receiver.");
+            }
+
+            if (newInstrumentation.getResources() != null) {
                 handlerThread = new HandlerThread("Sui");
                 handlerThread.start();
                 handler = new Handler(handlerThread.getLooper());
-                handler.post(() -> shortcutStuff(application, resources));
+                handler.post(() -> shortcutStuff(application, newInstrumentation));
                 LOGGER.d("postBindApplication [Delayed]: shortcutStuff has been posted.");
             }
         });

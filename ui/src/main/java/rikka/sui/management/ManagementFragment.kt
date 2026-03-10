@@ -81,7 +81,7 @@ class ManagementFragment : AppFragment() {
 
     private val bounceEdgeEffectFactory by lazy {
         MiuixBounceEdgeEffectFactory {
-            viewModel.reload(requireContext())
+            context?.let { viewModel.reload(it) }
         }
     }
 
@@ -189,7 +189,7 @@ class ManagementFragment : AppFragment() {
 
         bounceEdgeEffectFactory.stateListener = object : MiuixBounceEdgeEffectFactory.PullStateChangeListener {
             override fun onPullStateChanged(dragOffset: Float, state: MiuixPullToRefreshView.RefreshState, thresholdOffset: Float, maxDragDistancePx: Float) {
-                binding.pullToRefreshIndicator.apply {
+                _binding?.pullToRefreshIndicator?.apply {
                     this.state = state
                     this.dragOffset = dragOffset
                     this.thresholdOffset = thresholdOffset
@@ -304,7 +304,12 @@ class ManagementFragment : AppFragment() {
             when (menuItem.itemId) {
                 R.id.action_filter_shizuku -> {
                     val newState = !viewModel.showOnlyShizukuApps
-                    viewModel.toggleShizukuFilter(newState, requireContext())
+                    val context = requireContext()
+                    viewModel.toggleShizukuFilter(newState, context) { success ->
+                        if (!success) {
+                            android.widget.Toast.makeText(context, "Failed to apply filter", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
                     true
                 }
 
@@ -330,8 +335,14 @@ class ManagementFragment : AppFragment() {
                 }
 
                 R.id.action_monet -> {
-                    viewModel.toggleMonetSetting(requireContext())
-                    requireActivity().recreate()
+                    val context = requireContext()
+                    viewModel.toggleMonetSetting(context) { success ->
+                        if (success) {
+                            activity?.recreate()
+                        } else {
+                            android.widget.Toast.makeText(context, "Failed to toggle Monet", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
                     true
                 }
 

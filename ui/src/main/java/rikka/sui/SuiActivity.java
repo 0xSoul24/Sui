@@ -47,6 +47,7 @@ public class SuiActivity extends AppActivity {
     }
 
     @Override
+    @Deprecated
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         if (savedInstanceState != null) {
             savedInstanceState.remove("android:support:fragments");

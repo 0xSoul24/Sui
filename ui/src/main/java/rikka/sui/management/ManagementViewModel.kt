@@ -31,6 +31,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import rikka.lifecycle.Resource
 import rikka.sui.model.AppInfo
 import rikka.sui.util.AppInfoComparator
@@ -65,25 +66,34 @@ class ManagementViewModel : ViewModel() {
             displayList()
         }
     }
-    fun toggleShizukuFilter(enable: Boolean, context: Context) {
-        if (showOnlyShizukuApps != enable) {
-            showOnlyShizukuApps = enable
-            viewModelScope.launch(Dispatchers.IO) {
-                val currentFlags = BridgeServiceClient.getGlobalSettings()
-                val newFlags = if (enable) {
-                    currentFlags or BridgeServiceClient.FLAG_SHOW_ONLY_SHIZUKU_APPS
-                } else {
-                    currentFlags and BridgeServiceClient.FLAG_SHOW_ONLY_SHIZUKU_APPS.inv()
-                }
-                BridgeServiceClient.setGlobalSettings(newFlags)
+    fun toggleShizukuFilter(enable: Boolean, context: Context, onResult: (Boolean) -> Unit) {
+        if (showOnlyShizukuApps == enable) {
+            onResult(true)
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentFlags = BridgeServiceClient.getGlobalSettings()
+            val newFlags = if (enable) {
+                currentFlags or BridgeServiceClient.FLAG_SHOW_ONLY_SHIZUKU_APPS
+            } else {
+                currentFlags and BridgeServiceClient.FLAG_SHOW_ONLY_SHIZUKU_APPS.inv()
             }
-            reload(context)
+            val success = BridgeServiceClient.setGlobalSettings(newFlags)
+
+            withContext(Dispatchers.Main) {
+                if (success) {
+                    showOnlyShizukuApps = enable
+                    reload(context)
+                }
+                onResult(success)
+            }
         }
     }
 
-    fun toggleMonetSetting(context: Context) {
+    fun toggleMonetSetting(context: Context, onResult: (Boolean) -> Unit) {
         val newState = !isMonetEnabled
-        isMonetEnabled = newState
+
         viewModelScope.launch(Dispatchers.IO) {
             val currentFlags = BridgeServiceClient.getGlobalSettings()
             val newFlags = if (!newState) {
@@ -91,10 +101,16 @@ class ManagementViewModel : ViewModel() {
             } else {
                 currentFlags and BridgeServiceClient.FLAG_MONET_DISABLED.inv()
             }
-            BridgeServiceClient.setGlobalSettings(newFlags)
+            val success = BridgeServiceClient.setGlobalSettings(newFlags)
 
-            val prefs = context.getSharedPreferences("sui_settings", Context.MODE_PRIVATE)
-            prefs.edit { putBoolean("monet_enabled", newState) }
+            withContext(Dispatchers.Main) {
+                if (success) {
+                    isMonetEnabled = newState
+                    val prefs = context.getSharedPreferences("sui_settings", Context.MODE_PRIVATE)
+                    prefs.edit { putBoolean("monet_enabled", newState) }
+                }
+                onResult(success)
+            }
         }
     }
 

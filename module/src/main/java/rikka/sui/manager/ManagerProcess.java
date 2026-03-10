@@ -47,7 +47,7 @@ import rikka.sui.util.BridgeServiceClient;
 public class ManagerProcess {
 
     private static Intent intent;
-    private static SuiApk suiApk;
+    private static volatile SuiApk suiApk;
 
     private static final IShizukuApplication APPLICATION = new IShizukuApplication.Stub() {
 

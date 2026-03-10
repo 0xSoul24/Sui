@@ -45,11 +45,12 @@ public class SuiApk {
     @SuppressWarnings("FieldCanBeLocal")
     private final ClassLoader classLoader;
 
-    private final Resources resources;
-    private Class<?> suiActivityClass;
-    private Class<?> suiRequestPermissionDialogClass;
-    private Constructor<?> suiActivityConstructor;
-    private Constructor<?> suiRequestPermissionDialogConstructor;
+    private volatile Resources resources;
+    private String apkPath;
+    private volatile Class<?> suiActivityClass;
+    private volatile Class<?> suiRequestPermissionDialogClass;
+    private volatile Constructor<?> suiActivityConstructor;
+    private volatile Constructor<?> suiRequestPermissionDialogConstructor;
 
     public static SuiApk createForSettings() {
         SuiApk apk;
@@ -77,7 +78,7 @@ public class SuiApk {
 
     private SuiApk()
             throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException,
-                    NoSuchFieldException, InterruptedException {
+                    NoSuchFieldException, InterruptedException, Exception {
         int retries = 10;
         do {
             if (BridgeServiceClient.getService() != null) break;
@@ -97,8 +98,13 @@ public class SuiApk {
             LOGGER.i("SuiApk: Using FD path: %s", apkPath);
         }
 
+        this.apkPath = apkPath;
         classLoader = new PathClassLoader(apkPath, ClassLoader.getSystemClassLoader());
 
+        reloadResources();
+    }
+
+    public void reloadResources() throws Exception {
         AssetManager am = AssetManager.class.newInstance();
         Method addAssetPath = AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
         addAssetPath.setAccessible(true);
@@ -121,7 +127,7 @@ public class SuiApk {
             }
         }
 
-        resources = new Resources(
+        Resources newResources = new Resources(
                 am,
                 application.getResources().getDisplayMetrics(),
                 application.getResources().getConfiguration());
@@ -129,7 +135,16 @@ public class SuiApk {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             Field classLoaderField = Resources.class.getDeclaredField("mClassLoader");
             classLoaderField.setAccessible(true);
-            classLoaderField.set(resources, classLoader);
+            classLoaderField.set(newResources, classLoader);
+        }
+
+        this.resources = newResources;
+    }
+
+    public void updateConfiguration(android.content.res.Configuration newConfig) throws Exception {
+        Resources res = this.resources;
+        if (res != null) {
+            res.updateConfiguration(newConfig, res.getDisplayMetrics());
         }
     }
 
