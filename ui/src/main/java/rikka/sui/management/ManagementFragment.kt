@@ -444,7 +444,35 @@ class ManagementFragment : AppFragment() {
             append("\n\n")
             setSpan(RelativeSizeSpan(0.5f), break2, break2 + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
-            append(getString(R.string.about_contributors))
+            val githubLinks = mapOf(
+                "RikkaW" to "https://github.com/RikkaW",
+                "XiaoTong6666" to "https://github.com/XiaoTong6666",
+                "yangFenTuoZi" to "https://github.com/yangFenTuoZi",
+                "yujincheng08" to "https://github.com/yujincheng08",
+                "0xSoul24" to "https://github.com/0xSoul24",
+                "Howard20181" to "https://github.com/Howard20181",
+                "Kr328" to "https://github.com/Kr328",
+            )
+
+            val contributorsNamesString = githubLinks.keys.joinToString(", ")
+            val contributorsText = getString(R.string.about_contributors, contributorsNamesString)
+            val spannableContributors = SpannableStringBuilder(contributorsText)
+
+            for ((name, link) in githubLinks) {
+                val index = contributorsText.indexOf(name)
+                if (index != -1) {
+                    spannableContributors.setSpan(
+                        object : URLSpan(link) {
+                            override fun updateDrawState(ds: android.text.TextPaint) {
+                            }
+                        },
+                        index,
+                        index + name.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+                }
+            }
+            append(spannableContributors)
         }
 
         val contentView = layoutInflater.inflate(R.layout.miuix_about_bottom_sheet, null)
