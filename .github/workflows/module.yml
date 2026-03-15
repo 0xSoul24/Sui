@@ -113,12 +113,23 @@ jobs:
             echo "Delete asset $ASSET_ID"
             gh api -X DELETE repos/$OWNER/$REPO/releases/assets/$ASSET_ID
           done
+      - name: Prepare Nightly release note
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          cat <<EOF > nightly-release-note.md
+          Nightly build
+          commit: ${GITHUB_SHA}  
+          message:
+          ${COMMIT_MESSAGE}
+          EOF
       - name: Update Nightly
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
           tag_name: nightly
           name: Nightly Build
+          body_path: nightly-release-note.md
           prerelease: false
           overwrite: true
           files: |
