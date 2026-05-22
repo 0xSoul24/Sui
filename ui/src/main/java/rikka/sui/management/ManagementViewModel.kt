@@ -158,25 +158,16 @@ class ManagementViewModel : ViewModel() {
 
                 val result = BridgeServiceClient.getApplications(-1, showOnlyShizukuApps)
                 if (result.isNotEmpty()) {
-                    val batchSize = Runtime.getRuntime().availableProcessors().let { cores ->
-                        when {
-                            cores <= 2 -> 10
-                            cores <= 4 -> 20
-                            else -> 30
-                        }
-                    }
                     coroutineScope {
-                        result.chunked(batchSize).forEach { batch ->
-                            batch.mapNotNull { app ->
-                                if (app?.packageInfo?.applicationInfo != null) {
-                                    async {
-                                        app.label = AppLabelCache.loadLabel(pm, app.packageInfo.applicationInfo!!)
-                                    }
-                                } else {
-                                    null
+                        result.mapNotNull { app ->
+                            if (app?.packageInfo?.applicationInfo != null) {
+                                async(Dispatchers.IO) {
+                                    app.label = AppLabelCache.loadLabel(pm, app.packageInfo.applicationInfo!!)
                                 }
-                            }.awaitAll()
-                        }
+                            } else {
+                                null
+                            }
+                        }.awaitAll()
                     }
                 }
 

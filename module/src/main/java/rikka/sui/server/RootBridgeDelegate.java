@@ -27,6 +27,7 @@ import android.os.Parcel;
 import android.os.ServiceManager;
 import rikka.shizuku.ShizukuApiConstants;
 import rikka.shizuku.server.ClientRecord;
+import rikka.sui.util.BridgeConstants;
 
 public class RootBridgeDelegate {
 
@@ -53,14 +54,14 @@ public class RootBridgeDelegate {
         Parcel data = null;
         Parcel reply = null;
         try {
-            IBinder bridgeService = ServiceManager.getService("activity");
+            IBinder bridgeService = ServiceManager.getService(BridgeConstants.SERVICE_NAME);
             if (bridgeService == null) return;
             data = Parcel.obtain();
             reply = Parcel.obtain();
-            data.writeInterfaceToken("android.app.IActivityManager");
-            data.writeInt(2); // BRIDGE_ACTION_GET_BINDER
-            data.writeInt(0); // request root server explicitly
-            bridgeService.transact(('_' << 24) | ('S' << 16) | ('U' << 8) | 'I', data, reply, 0);
+            data.writeInterfaceToken(BridgeConstants.SERVICE_DESCRIPTOR);
+            data.writeInt(BridgeConstants.ACTION_GET_BINDER);
+            data.writeInt(BridgeConstants.SERVER_UID_ROOT);
+            bridgeService.transact(BridgeConstants.TRANSACTION_CODE, data, reply, 0);
             reply.readException();
             IBinder rootBinder = reply.readStrongBinder();
             data.recycle();

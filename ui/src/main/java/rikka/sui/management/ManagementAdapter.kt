@@ -44,7 +44,15 @@ class ManagementAdapter(
         setHasStableIds(true)
     }
 
-    override fun getItemId(position: Int): Long = getItemAt<Any>(position).hashCode().toLong()
+    override fun getItemId(position: Int): Long {
+        val item = getItemAt<Any>(position)
+        return if (item is AppInfo) {
+            val uid = item.packageInfo.applicationInfo?.uid?.toLong() ?: 0L
+            uid * 31L + item.packageInfo.packageName.hashCode().toLong()
+        } else {
+            item.hashCode().toLong()
+        }
+    }
 
     override fun onCreateCreatorPool(): ClassCreatorPool = ClassCreatorPool()
 

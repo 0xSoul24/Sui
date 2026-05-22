@@ -32,6 +32,8 @@ static jmethodID original_execTransactMethodID;
 static const JNIInvokeInterface* old_JNIInvokeInterface = nullptr;
 static const JNINativeInterface* old_JNINativeInterface = nullptr;
 
+static JNIInvokeInterface new_JNIInvokeInterfaceStorage;
+static JNINativeInterface new_JNINativeInterfaceStorage;
 static JNIInvokeInterface* new_JNIInvokeInterface = nullptr;
 static JNINativeInterface* new_JNINativeInterface = nullptr;
 
@@ -66,7 +68,7 @@ static void InstallDirectly(JavaVM* javaVm, JNIEnv* env) {
     // JavaVM
     old_JNIInvokeInterface = javaVm->functions;
     old_GetEnv = javaVm->functions->GetEnv;
-    new_JNIInvokeInterface = new JNIInvokeInterface();
+    new_JNIInvokeInterface = &new_JNIInvokeInterfaceStorage;
     memcpy(new_JNIInvokeInterface, javaVm->functions, sizeof(JNIInvokeInterface));
     new_JNIInvokeInterface->GetEnv = new_GetEnv;
 
@@ -99,7 +101,7 @@ void BinderHook::Install(JavaVM* javaVm, JNIEnv* env, ExecTransact_t* callback) 
     // JNIEnv
     old_JNINativeInterface = env->functions;
     old_CallBooleanMethodV = env->functions->CallBooleanMethodV;
-    new_JNINativeInterface = new JNINativeInterface();
+    new_JNINativeInterface = &new_JNINativeInterfaceStorage;
     memcpy(new_JNINativeInterface, env->functions, sizeof(JNINativeInterface));
     new_JNINativeInterface->CallBooleanMethodV = new_CallBooleanMethodV;
 

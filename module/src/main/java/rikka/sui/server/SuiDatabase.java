@@ -57,7 +57,7 @@ public class SuiDatabase {
         return database;
     }
 
-    private static SQLiteDatabase getDatabase() {
+    private static synchronized SQLiteDatabase getDatabase() {
         if (databaseInternal == null) {
             databaseInternal = createDatabase(true);
         }

@@ -57,14 +57,11 @@ public class Bridge {
         int flags = SystemProcess.getDefaultPermissionFlags();
         if (SystemProcess.isHidden(uid)) {
             flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_HIDDEN;
-        }
-        if (SystemProcess.isRootAllowed(uid)) {
-            flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_ALLOWED;
-        }
-        if (SystemProcess.isDenied(uid)) {
+        } else if (SystemProcess.isDenied(uid)) {
             flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_DENIED;
-        }
-        if (SystemProcess.isShellAllowed(uid)) {
+        } else if (SystemProcess.isRootAllowed(uid)) {
+            flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_ALLOWED;
+        } else if (SystemProcess.isShellAllowed(uid)) {
             flags = (flags & ~SuiConfig.MASK_PERMISSION) | SuiConfig.FLAG_ALLOWED_SHELL;
         }
         return flags & SuiConfig.MASK_PERMISSION;

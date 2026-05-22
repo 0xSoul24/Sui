@@ -62,6 +62,7 @@ import rikka.shizuku.server.util.HandlerUtil;
 import rikka.sui.model.AppInfo;
 import rikka.sui.server.bridge.BridgeServiceClient;
 import rikka.sui.util.AppLaunchUtils;
+import rikka.sui.util.BridgeConstants;
 import rikka.sui.util.Logger;
 import rikka.sui.util.OsUtils;
 import rikka.sui.util.UserHandleCompat;
@@ -70,12 +71,6 @@ import rikka.sui.util.UserHandleCompat;
 @SuppressWarnings("deprecation")
 public class SuiService extends Service<SuiUserServiceManager, SuiClientManager, SuiConfigManager> {
 
-    private static final int BRIDGE_TRANSACTION_CODE = ('_' << 24) | ('S' << 16) | ('U' << 8) | 'I';
-    private static final String BRIDGE_SERVICE_DESCRIPTOR = "android.app.IActivityManager";
-    private static final String BRIDGE_SERVICE_NAME = "activity";
-    private static final int BRIDGE_ACTION_GET_BINDER = 2;
-    private static final int SERVER_UID_ROOT = 0;
-    private static final int SERVER_UID_SHELL = 2000;
     private static final long DELEGATED_PERMISSION_CALLBACK_TIMEOUT_MS = 5 * 60 * 1000L;
 
     private static SuiService instance;
@@ -89,7 +84,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     }
 
     private static IBinder requestBinderFromBridge(int serverUid) {
-        IBinder bridgeService = android.os.ServiceManager.getService(BRIDGE_SERVICE_NAME);
+        IBinder bridgeService = android.os.ServiceManager.getService(BridgeConstants.SERVICE_NAME);
         if (bridgeService == null) {
             return null;
         }
@@ -97,12 +92,12 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
-            data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
-            data.writeInt(BRIDGE_ACTION_GET_BINDER);
-            if (serverUid == SERVER_UID_ROOT || serverUid == SERVER_UID_SHELL) {
+            data.writeInterfaceToken(BridgeConstants.SERVICE_DESCRIPTOR);
+            data.writeInt(BridgeConstants.ACTION_GET_BINDER);
+            if (serverUid == BridgeConstants.SERVER_UID_ROOT || serverUid == BridgeConstants.SERVER_UID_SHELL) {
                 data.writeInt(serverUid);
             }
-            bridgeService.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
+            bridgeService.transact(BridgeConstants.TRANSACTION_CODE, data, reply, 0);
             reply.readException();
             return reply.readStrongBinder();
         } catch (Throwable e) {
@@ -115,7 +110,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
     }
 
     private void reloadShellServerConfig() {
-        IBinder shellBinder = requestBinderFromBridge(SERVER_UID_SHELL);
+        IBinder shellBinder = requestBinderFromBridge(BridgeConstants.SERVER_UID_SHELL);
         if (shellBinder == null) {
             LOGGER.w("shell binder is null, skip synchronous shell config reload");
             return;
@@ -466,7 +461,6 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         reply.putInt(BIND_APPLICATION_SERVER_UID, OsUtils.getUid());
         reply.putInt(BIND_APPLICATION_SERVER_VERSION, replyServerVersion);
         reply.putString(BIND_APPLICATION_SERVER_SECONTEXT, OsUtils.getSELinuxContext());
-        reply.putInt(BIND_APPLICATION_SERVER_VERSION, replyServerVersion);
         reply.putInt(BIND_APPLICATION_SERVER_PATCH_VERSION, ShizukuApiConstants.SERVER_PATCH_VERSION);
         if (!isManager && !isSettings) {
             reply.putBoolean(BIND_APPLICATION_PERMISSION_GRANTED, clientRecord.allowed);
@@ -705,7 +699,7 @@ public class SuiService extends Service<SuiUserServiceManager, SuiClientManager,
         String action = intent.getAction();
         int uid = intent.getIntExtra(Intent.EXTRA_UID, -1);
         boolean replacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false);
-        if (Intent.ACTION_PACKAGE_REMOVED.equals(action) && uid > 0 & !replacing) {
+        if (Intent.ACTION_PACKAGE_REMOVED.equals(action) && uid > 0 && !replacing) {
             LOGGER.i("uid %d is removed", uid);
             configManager.remove(uid);
             BridgeServiceClient.syncUids(

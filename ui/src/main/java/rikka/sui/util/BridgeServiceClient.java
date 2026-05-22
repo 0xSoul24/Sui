@@ -110,11 +110,6 @@ public class BridgeServiceClient {
         }
     }
 
-    private static final int BRIDGE_TRANSACTION_CODE = ('_' << 24) | ('S' << 16) | ('U' << 8) | 'I';
-    private static final String BRIDGE_SERVICE_DESCRIPTOR = "android.app.IActivityManager";
-    private static final String BRIDGE_SERVICE_NAME = "activity";
-    private static final int BRIDGE_ACTION_GET_BINDER = 2;
-
     private static final IBinder.DeathRecipient DEATH_RECIPIENT = () -> {
         final String TAG = "SuiBridgeDebug";
         android.util.Log.w(TAG, "Bridge binder died. Resetting connection.");
@@ -130,7 +125,7 @@ public class BridgeServiceClient {
         android.util.Log.d(TAG, "Attempting to request binder from bridge...");
 
         for (int i = 0; i < RETRY_MAX; i++) {
-            IBinder activityBinder = ServiceManager.getService(BRIDGE_SERVICE_NAME);
+            IBinder activityBinder = ServiceManager.getService(BridgeConstants.SERVICE_NAME);
 
             if (activityBinder == null) {
                 android.util.Log.e(
@@ -143,11 +138,11 @@ public class BridgeServiceClient {
                 Parcel data = Parcel.obtain();
                 Parcel reply = Parcel.obtain();
                 try {
-                    data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
-                    data.writeInt(BRIDGE_ACTION_GET_BINDER);
+                    data.writeInterfaceToken(BridgeConstants.SERVICE_DESCRIPTOR);
+                    data.writeInt(BridgeConstants.ACTION_GET_BINDER);
 
                     android.util.Log.d(TAG, "Executing binder.transact with custom code...");
-                    activityBinder.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
+                    activityBinder.transact(BridgeConstants.TRANSACTION_CODE, data, reply, 0);
                     android.util.Log.d(TAG, "Transact call has returned. Reading reply...");
 
                     reply.readException();

@@ -235,17 +235,8 @@ class ManagementAppItemViewHolder(
             }
         val allowed = effectiveFlags and SuiConfig.FLAG_ALLOWED != 0
         val allowedShell = effectiveFlags and SuiConfig.FLAG_ALLOWED_SHELL != 0
-        val denied = effectiveFlags and SuiConfig.FLAG_DENIED != 0
-        val hidden = effectiveFlags and SuiConfig.FLAG_HIDDEN != 0
-
         if (allowed || allowedShell) {
             binding.title.setTextColor(textColorPrimary)
-            binding.title.typeface = SANS_SERIF_MEDIUM
-        } else if (denied) {
-            binding.title.setTextColor(textColorSecondary)
-            binding.title.typeface = SANS_SERIF_MEDIUM
-        } else if (hidden) {
-            binding.title.setTextColor(textColorSecondary)
             binding.title.typeface = SANS_SERIF_MEDIUM
         } else {
             binding.title.setTextColor(textColorSecondary)

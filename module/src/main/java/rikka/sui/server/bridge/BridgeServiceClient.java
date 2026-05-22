@@ -29,17 +29,9 @@ import android.os.SystemProperties;
 import java.lang.reflect.Field;
 import java.util.Map;
 import rikka.sui.server.SuiService;
+import rikka.sui.util.BridgeConstants;
 
 public class BridgeServiceClient {
-
-    private static final int BRIDGE_TRANSACTION_CODE = ('_' << 24) | ('S' << 16) | ('U' << 8) | 'I';
-    private static final String BRIDGE_SERVICE_DESCRIPTOR = "android.app.IActivityManager";
-    private static final String BRIDGE_SERVICE_NAME = "activity";
-
-    private static final int ACTION_SEND_BINDER = 1;
-    private static final int ACTION_GET_BINDER = ACTION_SEND_BINDER + 1;
-    private static final int ACTION_NOTIFY_FINISHED = ACTION_SEND_BINDER + 2;
-    private static final int ACTION_SYNC_UIDS = ACTION_SEND_BINDER + 3;
 
     private static final int MAX_ZYGOTE_RESTART = 1;
     private static int remainingRestart = MAX_ZYGOTE_RESTART;
@@ -63,7 +55,7 @@ public class BridgeServiceClient {
                 }
             }
 
-            LOGGER.i("service %s is dead.", BRIDGE_SERVICE_NAME);
+            LOGGER.i("service %s is dead.", BridgeConstants.SERVICE_NAME);
 
             try {
                 //noinspection JavaReflectionMemberAccess
@@ -117,12 +109,12 @@ public class BridgeServiceClient {
     private static void sendToBridge(boolean isRestart) {
         IBinder bridgeService;
         do {
-            bridgeService = ServiceManager.getService(BRIDGE_SERVICE_NAME);
+            bridgeService = ServiceManager.getService(BridgeConstants.SERVICE_NAME);
             if (bridgeService != null && bridgeService.pingBinder()) {
                 break;
             }
 
-            LOGGER.i("service %s is not started, wait 1s.", BRIDGE_SERVICE_NAME);
+            LOGGER.i("service %s is not started, wait 1s.", BridgeConstants.SERVICE_NAME);
 
             try {
                 //noinspection BusyWait
@@ -149,12 +141,12 @@ public class BridgeServiceClient {
         boolean res = false;
         for (int i = 0; i < 3; i++) {
             try {
-                data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
-                data.writeInt(ACTION_SEND_BINDER);
+                data.writeInterfaceToken(BridgeConstants.SERVICE_DESCRIPTOR);
+                data.writeInt(BridgeConstants.ACTION_SEND_BINDER);
                 IBinder binder = SuiService.getInstance();
                 LOGGER.v("binder %s", binder);
                 data.writeStrongBinder(binder);
-                res = bridgeService.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
+                res = bridgeService.transact(BridgeConstants.TRANSACTION_CODE, data, reply, 0);
                 reply.readException();
             } catch (Throwable e) {
                 LOGGER.e(e, "send binder");
@@ -210,7 +202,7 @@ public class BridgeServiceClient {
     }
 
     public static void notifyStarted() {
-        IBinder bridgeService = ServiceManager.getService(BRIDGE_SERVICE_NAME);
+        IBinder bridgeService = ServiceManager.getService(BridgeConstants.SERVICE_NAME);
         if (bridgeService == null) {
             return;
         }
@@ -219,9 +211,9 @@ public class BridgeServiceClient {
         Parcel reply = Parcel.obtain();
         boolean res = false;
         try {
-            data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
-            data.writeInt(ACTION_NOTIFY_FINISHED);
-            res = bridgeService.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
+            data.writeInterfaceToken(BridgeConstants.SERVICE_DESCRIPTOR);
+            data.writeInt(BridgeConstants.ACTION_NOTIFY_FINISHED);
+            res = bridgeService.transact(BridgeConstants.TRANSACTION_CODE, data, reply, 0);
             reply.readException();
         } catch (Throwable e) {
             LOGGER.e(e, "notify started");
@@ -238,7 +230,7 @@ public class BridgeServiceClient {
     }
 
     public static void syncUids(int[] hiddenUids, int[] rootUids, int[] deniedUids, int[] shellUids, int defaultFlags) {
-        IBinder bridgeService = ServiceManager.getService(BRIDGE_SERVICE_NAME);
+        IBinder bridgeService = ServiceManager.getService(BridgeConstants.SERVICE_NAME);
         if (bridgeService == null) {
             return;
         }
@@ -246,14 +238,14 @@ public class BridgeServiceClient {
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
-            data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
-            data.writeInt(ACTION_SYNC_UIDS);
+            data.writeInterfaceToken(BridgeConstants.SERVICE_DESCRIPTOR);
+            data.writeInt(BridgeConstants.ACTION_SYNC_UIDS);
             data.writeIntArray(hiddenUids);
             data.writeIntArray(rootUids);
             data.writeIntArray(shellUids);
             data.writeInt(defaultFlags);
             data.writeIntArray(deniedUids);
-            bridgeService.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
+            bridgeService.transact(BridgeConstants.TRANSACTION_CODE, data, reply, 0);
             reply.readException();
         } catch (Throwable e) {
             LOGGER.e(e, "sync uids");

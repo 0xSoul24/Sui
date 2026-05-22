@@ -93,7 +93,7 @@ object AppIconCache : CoroutineScope {
             return cachedBitmap
         }
 
-        val loader = appIconLoaders.getOrPut(size) {
+        val loader = appIconLoaders.computeIfAbsent(size) { _ ->
             AppIconLoader(
                 size,
                 AppIconUtil.shouldShrinkNonAdaptiveIcons(context),

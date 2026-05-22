@@ -39,7 +39,6 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.Animation
 import android.widget.Toast
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
@@ -213,12 +212,6 @@ class ManagementFragment : AppFragment() {
             fastScroller = FastScrollerBuilder(this)
                 .useMd2Style()
                 .build()
-
-            layoutAnimationListener = object : Animation.AnimationListener {
-                override fun onAnimationStart(animation: Animation?) {}
-                override fun onAnimationEnd(animation: Animation?) {}
-                override fun onAnimationRepeat(animation: Animation?) {}
-            }
         }
 
         viewModel.appList.observe(viewLifecycleOwner) {

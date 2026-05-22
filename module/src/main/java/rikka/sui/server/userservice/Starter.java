@@ -30,23 +30,18 @@ import android.util.Log;
 import android.util.Pair;
 import moe.shizuku.server.IShizukuService;
 import rikka.shizuku.server.UserService;
+import rikka.sui.util.BridgeConstants;
 
 public class Starter {
 
     private static final String TAG = "SuiUserServiceStarter";
-    private static final int BRIDGE_TRANSACTION_CODE = ('_' << 24) | ('S' << 16) | ('U' << 8) | 'I';
-    private static final String BRIDGE_SERVICE_DESCRIPTOR = "android.app.IActivityManager";
-    private static final String BRIDGE_SERVICE_NAME = "activity";
-    private static final int BRIDGE_ACTION_GET_BINDER = 2;
-    private static final int SERVER_UID_ROOT = 0;
-    private static final int SERVER_UID_SHELL = 2000;
 
     private static int parseServerUid(String[] args) {
         for (String arg : args) {
             if (arg.startsWith("--server-uid=")) {
                 try {
                     int uid = Integer.parseInt(arg.substring(13));
-                    if (uid == SERVER_UID_ROOT || uid == SERVER_UID_SHELL) {
+                    if (uid == BridgeConstants.SERVER_UID_ROOT || uid == BridgeConstants.SERVER_UID_SHELL) {
                         return uid;
                     }
                     Log.w(TAG, "Unsupported --server-uid=" + uid);
@@ -100,18 +95,18 @@ public class Starter {
     }
 
     private static IBinder requestBinderFromBridge(int serverUid) {
-        IBinder binder = ServiceManager.getService(BRIDGE_SERVICE_NAME);
+        IBinder binder = ServiceManager.getService(BridgeConstants.SERVICE_NAME);
         if (binder == null) return null;
 
         Parcel data = Parcel.obtain();
         Parcel reply = Parcel.obtain();
         try {
-            data.writeInterfaceToken(BRIDGE_SERVICE_DESCRIPTOR);
-            data.writeInt(BRIDGE_ACTION_GET_BINDER);
-            if (serverUid == SERVER_UID_ROOT || serverUid == SERVER_UID_SHELL) {
+            data.writeInterfaceToken(BridgeConstants.SERVICE_DESCRIPTOR);
+            data.writeInt(BridgeConstants.ACTION_GET_BINDER);
+            if (serverUid == BridgeConstants.SERVER_UID_ROOT || serverUid == BridgeConstants.SERVER_UID_SHELL) {
                 data.writeInt(serverUid);
             }
-            binder.transact(BRIDGE_TRANSACTION_CODE, data, reply, 0);
+            binder.transact(BridgeConstants.TRANSACTION_CODE, data, reply, 0);
             reply.readException();
             IBinder received = reply.readStrongBinder();
             if (received != null) {

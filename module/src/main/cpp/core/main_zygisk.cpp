@@ -186,6 +186,10 @@ static void ReadApplicationInfo(const char* package, uid_t& uid, char* process) 
     auto file = Buffer(buf);
     auto bytes = file.data();
     auto size = file.size();
+    if (bytes == nullptr || size == 0) {
+        LOGW("ReadApplicationInfo: failed to read %s", buf);
+        return;
+    }
     for (int i = 0; i < size; ++i) {
         if (bytes[i] == '\n') {
             memset(process, 0, kProcessNameMax);
@@ -249,6 +253,11 @@ cleanup:
 
 static void CompanionEntry(int socket) {
     static auto prepare = PrepareCompanion();
+    if (!prepare) {
+        LOGE("PrepareCompanion failed, dropping connection");
+        close(socket);
+        return;
+    }
 
     char process_name[kProcessNameMax]{0};
     Identity whoami;

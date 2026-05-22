@@ -29,18 +29,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import moe.shizuku.server.IShizukuService;
 import rikka.sui.server.SuiConfig;
+import rikka.sui.util.BridgeConstants;
 
 public class BridgeService {
-
-    private static final String DESCRIPTOR = "android.app.IActivityManager";
-    private static final int TRANSACTION = ('_' << 24) | ('S' << 16) | ('U' << 8) | 'I';
-
-    private static final int ACTION_SEND_BINDER = 1;
-    private static final int ACTION_GET_BINDER = ACTION_SEND_BINDER + 1;
-    private static final int ACTION_NOTIFY_FINISHED = ACTION_SEND_BINDER + 2;
-    private static final int ACTION_SYNC_UIDS = ACTION_SEND_BINDER + 3;
-    private static final int SERVER_UID_ROOT = 0;
-    private static final int SERVER_UID_SHELL = 2000;
 
     private static final int RETRY_MAX = 3;
     private static final long RETRY_DELAY_MS = 1000;
@@ -117,11 +108,11 @@ public class BridgeService {
     }
 
     public boolean isServiceTransaction(int code) {
-        return code == TRANSACTION;
+        return code == BridgeConstants.TRANSACTION_CODE;
     }
 
     public boolean onTransact(int code, @NonNull Parcel data, @Nullable Parcel reply, int flags) {
-        data.enforceInterface(DESCRIPTOR);
+        data.enforceInterface(BridgeConstants.SERVICE_DESCRIPTOR);
 
         int action = data.readInt();
         LOGGER.d(
@@ -129,7 +120,7 @@ public class BridgeService {
                 action, Binder.getCallingUid(), Binder.getCallingPid());
 
         switch (action) {
-            case ACTION_SEND_BINDER: {
+            case BridgeConstants.ACTION_SEND_BINDER: {
                 int callingUid = Binder.getCallingUid();
                 if (callingUid == 0 || callingUid == 2000) {
                     IBinder binder = data.readStrongBinder();
@@ -146,13 +137,13 @@ public class BridgeService {
                 }
                 break;
             }
-            case ACTION_GET_BINDER: {
+            case BridgeConstants.ACTION_GET_BINDER: {
                 int callingUid = Binder.getCallingUid();
                 int targetUid = callingUid;
                 Integer requestedServerUid = null;
                 if ((callingUid == 0 || callingUid == 2000) && data.dataAvail() >= Integer.BYTES) {
                     int value = data.readInt();
-                    if (value == SERVER_UID_ROOT || value == SERVER_UID_SHELL) {
+                    if (value == BridgeConstants.SERVER_UID_ROOT || value == BridgeConstants.SERVER_UID_SHELL) {
                         requestedServerUid = value;
                     }
                 }
@@ -167,8 +158,9 @@ public class BridgeService {
                 IBinder requestedBinder = null;
                 for (int i = 0; i < RETRY_MAX; i++) {
                     if (requestedServerUid != null) {
-                        requestedBinder =
-                                requestedServerUid == SERVER_UID_ROOT ? rootServiceBinder : shellServiceBinder;
+                        requestedBinder = requestedServerUid == BridgeConstants.SERVER_UID_ROOT
+                                ? rootServiceBinder
+                                : shellServiceBinder;
                     } else if ((permissionFlags & SuiConfig.FLAG_ALLOWED) != 0) {
                         requestedBinder = rootServiceBinder;
                     } else if ((permissionFlags & SuiConfig.FLAG_ALLOWED_SHELL) != 0) {
@@ -194,7 +186,7 @@ public class BridgeService {
                         targetUid,
                         requestedServerUid == null
                                 ? "auto"
-                                : (requestedServerUid == SERVER_UID_ROOT ? "root" : "shell"),
+                                : (requestedServerUid == BridgeConstants.SERVER_UID_ROOT ? "root" : "shell"),
                         requestedBinder == rootServiceBinder
                                 ? "root"
                                 : requestedBinder == shellServiceBinder ? "shell" : "null");
@@ -206,7 +198,7 @@ public class BridgeService {
                 }
                 return true;
             }
-            case ACTION_NOTIFY_FINISHED: {
+            case BridgeConstants.ACTION_NOTIFY_FINISHED: {
                 if (Binder.getCallingUid() == 0) {
                     serviceStarted = true;
 
@@ -217,7 +209,7 @@ public class BridgeService {
                 }
                 break;
             }
-            case ACTION_SYNC_UIDS: {
+            case BridgeConstants.ACTION_SYNC_UIDS: {
                 if (Binder.getCallingUid() == 0) {
                     int[] hiddenUids = data.createIntArray();
                     int[] rootUids = data.createIntArray();
